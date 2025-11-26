@@ -1,0 +1,16 @@
+{
+    "clang-format.executable": "/usr/bin/clang-format",
+    "clang-format.style": "file",                 // 推荐！自动查找项目根目录的 .clang-format 文件
+    "clang-format.fallbackStyle": "none",         // 找不到 .clang-format 时不使用默认风格（避免意外格式化）
+    "clang-format.language.cpp.enable": true,     // 确保 C++ 启用（默认就是）
+    "clang-format.language.c.enable": true,
+    "[cpp]": {
+        "editor.defaultFormatter": "xaver.clang-format"
+    },
+    "[c]": {
+        "editor.defaultFormatter": "xaver.clang-format"
+    },
+    "editor.formatOnSave": true,           // 保存时自动格式化（强烈推荐）
+    "editor.formatOnPaste": false,          // 粘贴时也格式化（可选）
+    "editor.formatOnType": false            // 输入时实时格式化（可选）
+}
