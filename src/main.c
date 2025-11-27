@@ -155,7 +155,7 @@ int main(int argc, char **argv) {
       frame_counter = 0;
       last_fps_time = now;
     }
-    usleep(16000);
+    usleep(8000);
   }
 
   return 0;
