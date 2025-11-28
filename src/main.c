@@ -37,8 +37,123 @@
 #define LEFT_EYELID_GIF "A:/mnt/data/panel/normal_left_eyelid.gif"
 #define RIGHT_EYE_GIF "A:/mnt/data/panel/normal_right_eye.gif"
 #define RIGHT_EYELID_GIF "A:/mnt/data/panel/normal_right_eyelid.gif"
+#define DOG_GIF "A:/mnt/data/panel/dog.gif"
 
 #define SCREEN_DIAMETER 160  // 240
+
+/* ==================== 眼睛控制器结构体 ==================== */
+typedef struct {
+  lv_obj_t *eye_gif;        // 眼球动图（循环播放）
+  lv_obj_t *eyelid_gif;     // 眼睑动图（单次播放）
+  lv_timer_t *blink_timer;  // 眨眼定时器
+  int max_offset;  // 允许的最大偏移像素（根据眼白大小调整）
+} eye_t;
+
+static eye_t left_eye = {0};
+static eye_t right_eye = {0};
+
+/* ==================== 1. 眨眼频率控制 ==================== */
+static void blink_timer_cb(lv_timer_t *timer) {
+  lv_obj_t *gif = lv_timer_get_user_data(timer);
+  lv_gif_restart(gif);
+}
+
+void eye_set_blink_interval(eye_t *eye, uint32_t interval_ms) {
+  if (eye->blink_timer) {
+    lv_timer_del(eye->blink_timer);
+  }
+  eye->blink_timer =
+      lv_timer_create(blink_timer_cb, interval_ms, eye->eyelid_gif);
+  lv_timer_set_repeat_count(eye->blink_timer, -1);
+
+  // 立即让眼睛睁开（避免启动时是闭眼）
+  lv_gif_restart(eye->eyelid_gif);
+}
+
+/* ==================== 2. 视线追随（眼球动图整体平移） ==================== */
+// eye_look_at(&left_eye, 22, -16);  // 双眼往右上看
+// eye_look_at(&right_eye, 22, -16);
+static void look_at_anim_x(void *obj, int32_t v) {
+  lv_obj_set_style_translate_x(obj, v, 0);
+}
+
+static void look_at_anim_y(void *obj, int32_t v) {
+  lv_obj_set_style_translate_y(obj, v, 0);
+}
+void eye_look_at(eye_t *eye, int32_t tx, int32_t ty) {
+  if (!eye || !eye->eye_gif) return;
+
+  int32_t x = tx;
+  int32_t y = ty;
+  if (x > eye->max_offset) x = eye->max_offset;
+  if (x < -eye->max_offset) x = -eye->max_offset;
+  if (y > eye->max_offset) y = eye->max_offset;
+  if (y < -eye->max_offset) y = -eye->max_offset;
+
+  /* X 轴动画 */
+  lv_anim_t ax;
+  lv_anim_init(&ax);
+  lv_anim_set_var(&ax, eye->eye_gif);
+  lv_anim_set_values(&ax, lv_obj_get_style_translate_x(eye->eye_gif, 0), x);
+  lv_anim_set_exec_cb(&ax, look_at_anim_x);
+  lv_anim_set_time(&ax, 180);
+  lv_anim_set_path_cb(&ax, lv_anim_path_ease_out);
+  lv_anim_start(&ax);
+
+  /* Y 轴动画 */
+  lv_anim_t ay;
+  lv_anim_init(&ay);
+  lv_anim_set_var(&ay, eye->eye_gif);
+  lv_anim_set_values(&ay, lv_obj_get_style_translate_y(eye->eye_gif, 0), y);
+  lv_anim_set_exec_cb(&ay, look_at_anim_y);
+  lv_anim_set_time(&ay, 180);
+  lv_anim_set_path_cb(&ay, lv_anim_path_ease_out);
+  lv_anim_start(&ay);
+}
+
+/* ==================== 3. 切换整套眼睛素材 ==================== */
+// 传入素材的路径，max_offset_px是限制的最大的偏移像素
+// eye_switch_material(&left_eye, "A:/mnt/data/panel/sleepy_left_eye.gif",
+//                     "A:/mnt/data/panel/sleepy_left_eyelid.gif", 28);
+// eye_switch_material(&right_eye, "A:/mnt/data/panel/sleepy_right_eye.gif",
+//                     "A:/mnt/data/panel/sleepy_right_eyelid.gif", 28);
+void eye_switch_material(eye_t *eye, const char *eye_gif_path,
+                         const char *eyelid_gif_path,
+                         uint32_t blink_interval_ms, int32_t max_offset_px) {
+  lv_gif_set_src(eye->eye_gif, eye_gif_path);
+  lv_gif_set_src(eye->eyelid_gif, eyelid_gif_path);
+
+  lv_obj_center(eye->eye_gif);
+  lv_obj_center(eye->eyelid_gif);
+
+  /* 重置位置 */
+  lv_obj_set_style_translate_x(eye->eye_gif, 0, 0);
+  lv_obj_set_style_translate_y(eye->eye_gif, 0, 0);
+
+  eye->max_offset = max_offset_px;
+  eye_set_blink_interval(eye, blink_interval_ms);
+
+  /* 看向正前方 */
+  eye_look_at(eye, 0, 0);
+}
+
+/* ==================== 创建单只眼睛 ==================== */
+static void eye_create(lv_disp_t *disp, eye_t *eye, const char *eye_gif_path,
+                       const char *eyelid_gif_path, int32_t max_offset,
+                       uint32_t blink_interval_ms) {
+  lv_obj_t *scr = lv_disp_get_scr_act(disp);
+
+  eye->eye_gif = lv_gif_create(scr);
+  lv_gif_set_src(eye->eye_gif, eye_gif_path);
+  lv_obj_center(eye->eye_gif);
+
+  eye->eyelid_gif = lv_gif_create(scr);
+  lv_gif_set_src(eye->eyelid_gif, eyelid_gif_path);
+  lv_obj_center(eye->eyelid_gif);
+
+  eye->max_offset = max_offset;
+  eye_set_blink_interval(eye, blink_interval_ms);
+}
 
 static void bl_write(const char *path, const char *val) {
   int fd = open(path, O_WRONLY);
@@ -117,6 +232,23 @@ static void show_blink_eye(lv_disp_t *disp, const char *eye_path,
   lv_obj_center(gif_lid);
 }
 
+void print_fps(void) {
+  static uint32_t last_fps_time = 0;
+  static uint32_t frame_counter = 0;
+
+  uint32_t now = lv_tick_get();
+
+  frame_counter++;
+
+  // 每 500ms 更新一次 FPS 显示
+  if (now - last_fps_time >= 1000) {
+    float fps = frame_counter * 1000.0f / (now - last_fps_time);
+    printf("FPS: %.1f\n", fps);
+    frame_counter = 0;
+    last_fps_time = now;
+  }
+}
+
 int main(int argc, char **argv) {
   lv_init();
   backlight_init_dual();
@@ -136,27 +268,11 @@ int main(int argc, char **argv) {
   lv_display_set_buffers(disp1, buf00, buf01, sizeof(buf00),
                          LV_DISPLAY_RENDER_MODE_PARTIAL);
 
-  show_blink_eye(disp0, LEFT_EYE_GIF, LEFT_EYELID_GIF);
-  show_blink_eye(disp1, RIGHT_EYE_GIF, RIGHT_EYELID_GIF);
+  eye_create(disp0, &left_eye, LEFT_EYE_GIF, LEFT_EYELID_GIF, 28, 5000);
+  eye_create(disp1, &right_eye, RIGHT_EYE_GIF, RIGHT_EYELID_GIF, 28, 5000);
 
   while (1) {
-    static uint32_t last_fps_time = 0;
-    static uint32_t frame_counter = 0;
-
-    uint32_t now = lv_tick_get();
-
-    lv_timer_handler();  // 原来的
-
-    frame_counter++;
-
-    // 每 500ms 更新一次 FPS 显示（你可以不要这个 if，直接打印也行）
-    if (now - last_fps_time >= 500) {
-      float fps = frame_counter * 1000.0f / (now - last_fps_time);
-      printf("FPS: %.1f\n", fps);
-
-      frame_counter = 0;
-      last_fps_time = now;
-    }
+    lv_timer_handler();
     usleep(8000);
   }
 
