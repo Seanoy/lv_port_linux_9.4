@@ -38,6 +38,8 @@
 #define RIGHT_EYE_GIF "A:/mnt/data/panel/normal_right_eye.gif"
 #define RIGHT_EYELID_GIF "A:/mnt/data/panel/normal_right_eyelid.gif"
 
+#define SCREEN_DIAMETER 160  // 240
+
 static void bl_write(const char *path, const char *val) {
   int fd = open(path, O_WRONLY);
   if (fd < 0) return;
@@ -95,10 +97,10 @@ uint32_t custom_tick_get(void) {
   return (uint32_t)(now_ms - start_ms);
 }
 
-__attribute__((section(".fast_ram"))) lv_color_t buf00[160 * 160];
-__attribute__((section(".fast_ram"))) lv_color_t buf01[160 * 160];
-__attribute__((section(".fast_ram"))) lv_color_t buf10[160 * 160];
-__attribute__((section(".fast_ram"))) lv_color_t buf11[160 * 160];
+__attribute__((section(".fast_ram")))
+lv_color_t buf00[SCREEN_DIAMETER * SCREEN_DIAMETER / 2];
+__attribute__((section(".fast_ram")))
+lv_color_t buf01[SCREEN_DIAMETER * SCREEN_DIAMETER / 2];
 
 static void show_blink_eye(lv_disp_t *disp, const char *eye_path,
                            const char *lid_path) {
@@ -122,17 +124,17 @@ int main(int argc, char **argv) {
 
   lv_display_t *disp0 = lv_linux_fbdev_create();
   lv_linux_fbdev_set_file(disp0, "/dev/fb0");
-  lv_display_set_resolution(disp0, 160, 160);
+  lv_display_set_resolution(disp0, SCREEN_DIAMETER, SCREEN_DIAMETER);
   lv_display_set_color_format(disp0, LV_COLOR_FORMAT_RGB565);
   lv_display_set_buffers(disp0, buf00, buf01, sizeof(buf00),
-                         LV_DISPLAY_RENDER_MODE_FULL);
+                         LV_DISPLAY_RENDER_MODE_PARTIAL);
 
   lv_display_t *disp1 = lv_linux_fbdev_create();
   lv_linux_fbdev_set_file(disp1, "/dev/fb1");
-  lv_display_set_resolution(disp1, 160, 160);
+  lv_display_set_resolution(disp1, SCREEN_DIAMETER, SCREEN_DIAMETER);
   lv_display_set_color_format(disp1, LV_COLOR_FORMAT_RGB565);
-  lv_display_set_buffers(disp1, buf10, buf11, sizeof(buf10),
-                         LV_DISPLAY_RENDER_MODE_FULL);
+  lv_display_set_buffers(disp1, buf00, buf01, sizeof(buf00),
+                         LV_DISPLAY_RENDER_MODE_PARTIAL);
 
   show_blink_eye(disp0, LEFT_EYE_GIF, LEFT_EYELID_GIF);
   show_blink_eye(disp1, RIGHT_EYE_GIF, RIGHT_EYELID_GIF);
