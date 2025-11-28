@@ -275,7 +275,7 @@ endif()
 file(GLOB LV_LINUX_SRC src/lib/*.c)
 set(LV_LINUX_INC src/lib)
 
-add_executable(lvglsim src/main.c ${LV_LINUX_SRC} ${LV_LINUX_BACKEND_SRC})
+add_executable(lvglsim src/main.c src/eye_controller.c ${LV_LINUX_SRC} ${LV_LINUX_BACKEND_SRC})
 
 target_include_directories(lvgl PUBLIC ${PKG_CONFIG_INC})
 
