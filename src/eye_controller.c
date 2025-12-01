@@ -38,9 +38,9 @@
 #define SCREEN_DIAMETER 240  // px
 
 __attribute__((section(".fast_ram")))
-lv_color_t buf00[SCREEN_DIAMETER * SCREEN_DIAMETER / 2];
+lv_color_t buf00[SCREEN_DIAMETER * SCREEN_DIAMETER];
 __attribute__((section(".fast_ram")))
-lv_color_t buf01[SCREEN_DIAMETER * SCREEN_DIAMETER / 2];
+lv_color_t buf01[SCREEN_DIAMETER * SCREEN_DIAMETER];
 
 /* ==================== 执行单次眨眼 ==================== */
 static void perform_single_blink(struct eye_t *eye) {
@@ -323,15 +323,16 @@ void eye_controller_init(struct eye_t *left_eye, struct eye_t *right_eye,
   lv_linux_fbdev_set_file(disp0, "/dev/fb0");
   lv_display_set_resolution(disp0, SCREEN_DIAMETER, SCREEN_DIAMETER);
   lv_display_set_color_format(disp0, LV_COLOR_FORMAT_RGB565);
-  lv_display_set_buffers(disp0, buf00, buf01, sizeof(buf00),
-                         LV_DISPLAY_RENDER_MODE_PARTIAL);
+
+  lv_display_set_buffers(disp0, buf00, NULL, sizeof(buf00),
+                         LV_DISPLAY_RENDER_MODE_DIRECT);
 
   lv_display_t *disp1 = lv_linux_fbdev_create();
   lv_linux_fbdev_set_file(disp1, "/dev/fb1");
   lv_display_set_resolution(disp1, SCREEN_DIAMETER, SCREEN_DIAMETER);
   lv_display_set_color_format(disp1, LV_COLOR_FORMAT_RGB565);
-  lv_display_set_buffers(disp1, buf00, buf01, sizeof(buf00),
-                         LV_DISPLAY_RENDER_MODE_PARTIAL);
+  lv_display_set_buffers(disp1, buf01, NULL, sizeof(buf01),
+                         LV_DISPLAY_RENDER_MODE_DIRECT);
 
   // eye_create(disp0, left_eye, left_eye_path, left_eyelid_path, max_offset_px,
   //            2000, -1);
