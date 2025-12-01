@@ -80,6 +80,12 @@ static void eye_create(lv_disp_t *disp, struct eye_t *eye,
   eye->blink_remaining = blink_remaining;
   eye->blink_interval = blink_interval;
 
+  lv_obj_t *bg = lv_obj_create(scr);
+  lv_obj_set_size(bg, LV_PCT(240), LV_PCT(240));
+  lv_obj_set_style_bg_color(bg, lv_color_white(), 0);
+  lv_obj_set_style_bg_opa(bg, LV_OPA_COVER, 0);
+  lv_obj_move_background(bg);  // 确保在最底层
+
   eye->eye_gif = lv_gif_create(scr);
   lv_gif_set_src(eye->eye_gif, eye_gif_path);
   lv_obj_center(eye->eye_gif);
@@ -407,9 +413,15 @@ void eye_controller_deinit(struct eye_t *left_eye, struct eye_t *right_eye) {
 }
 
 void eye_controller_task(void) {
+  uint32_t last = lv_tick_get();
   while (1) {
     lv_timer_handler();
     print_fps();
-    usleep(8000);
+
+    uint32_t elaps = lv_tick_get() - last;
+    if (elaps < 5) {
+      usleep((5 - elaps) * 1000);
+    }
+    last = lv_tick_get();
   }
 }
