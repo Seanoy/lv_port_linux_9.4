@@ -12,9 +12,9 @@ int main(void) {
   eye_controller_init(&left_eye, &right_eye, LEFT_EYE_GIF, LEFT_EYELID_GIF,
                       RIGHT_EYE_GIF, RIGHT_EYELID_GIF, 28);
 
-  // 传入素材的路径，max_offset_px是限制的最大的偏移像素
-  // eye_switch_material(&left_eye, DOG_GIF, CAT_GIF, 28);
-  // eye_switch_material(&right_eye, DOG_GIF, CAT_GIF, 28);
+  // // 传入素材的路径，max_offset_px是限制的最大的偏移像素
+  // eye_switch_material(&left_eye, CAT_GIF, NULL, 28);
+  // eye_switch_material(&right_eye, DOG_GIF, NULL, 28);
 
   // eye_look_at(&left_eye, 22, -16);  // 双眼往右上看
   // eye_look_at(&right_eye, 22, -16);

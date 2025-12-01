@@ -35,7 +35,7 @@
 
 #include "lvgl.h"
 
-#define SCREEN_DIAMETER 160  // px
+#define SCREEN_DIAMETER 240  // px
 
 __attribute__((section(".fast_ram")))
 lv_color_t buf00[SCREEN_DIAMETER * SCREEN_DIAMETER / 2];
@@ -219,15 +219,17 @@ void eye_look_at(struct eye_t *eye, int32_t tx, int32_t ty) {
 /* ==================== 3. 切换整套眼睛素材 ==================== */
 void eye_switch_material(struct eye_t *eye, const char *eye_gif_path,
                          const char *eyelid_gif_path, int32_t max_offset_px) {
-  lv_gif_set_src(eye->eye_gif, eye_gif_path);
-  lv_gif_set_src(eye->eyelid_gif, eyelid_gif_path);
-
-  lv_obj_center(eye->eye_gif);
-  lv_obj_center(eye->eyelid_gif);
-
-  /* 重置位置 */
-  lv_obj_set_style_translate_x(eye->eye_gif, 0, 0);
-  lv_obj_set_style_translate_y(eye->eye_gif, 0, 0);
+  if (eye_gif_path) {
+    lv_gif_set_src(eye->eye_gif, eye_gif_path);
+    lv_obj_center(eye->eye_gif);
+    /* 重置位置 */
+    lv_obj_set_style_translate_x(eye->eye_gif, 0, 0);
+    lv_obj_set_style_translate_y(eye->eye_gif, 0, 0);
+  }
+  if (eyelid_gif_path) {
+    lv_gif_set_src(eye->eyelid_gif, eyelid_gif_path);
+    lv_obj_center(eye->eyelid_gif);
+  }
 
   eye->max_offset = max_offset_px;
 
