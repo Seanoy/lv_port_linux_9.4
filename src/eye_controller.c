@@ -42,74 +42,43 @@ lv_color_t buf00[SCREEN_DIAMETER * SCREEN_DIAMETER / 2];
 __attribute__((section(".fast_ram")))
 lv_color_t buf01[SCREEN_DIAMETER * SCREEN_DIAMETER / 2];
 
-// static struct eye_t left_eye = {0};
-// static struct eye_t right_eye = {0};
-
-static void eyelid_anim_completed(lv_anim_t *anim) {
-  struct eye_t *eye = (struct eye_t *)anim->user_data;
-  if (eye) {
-    eye->is_blinking = false;
-
-    // 暂停眼睑动画并重置到第一帧
-    lv_gif_pause(eye->eyelid_gif);
-    lv_gif_restart(eye->eyelid_gif);
-
-    // 如果还有剩余的眨眼次数，继续安排下一次眨眼
-    if (eye->blink_remaining != 0) {
-      if (eye->blink_remaining > 0) {
-        eye->blink_remaining--;
-      }
-      // -1 表示无限眨眼，不需要减少
-    }
-  }
-}
-
 /* ==================== 执行单次眨眼 ==================== */
 static void perform_single_blink(struct eye_t *eye) {
-  if (!eye || !eye->eyelid_gif || eye->is_blinking) return;
-
-  eye->is_blinking = true;
-
+  if (!eye || !eye->eyelid_gif) return;
   // 重新开始播放眼睑GIF
-  lv_gif_restart(eye->eyelid_gif);
   lv_gif_set_loop_count(eye->eyelid_gif, 1);  // 只播放一次
   lv_gif_resume(eye->eyelid_gif);
-
-  // 创建动画来监测眨眼完成（通过GIF的循环计数或定时器）
-  lv_anim_t anim;
-  lv_anim_init(&anim);
-  lv_anim_set_var(&anim, eye);
-  lv_anim_set_exec_cb(&anim, NULL);  // 不需要执行回调，只用于计时
-  lv_anim_set_values(&anim, 0, 100);
-  lv_anim_set_time(&anim, 200);  // 假设眨眼动画持续200ms
-  lv_anim_set_ready_cb(&anim, eyelid_anim_completed);
-  lv_anim_set_user_data(&anim, eye);
-  lv_anim_start(&anim);
 }
 
 /* ==================== 眨眼定时器回调 ==================== */
 static void blink_timer_cb(lv_timer_t *timer) {
   struct eye_t *eye = lv_timer_get_user_data(timer);
-  if (!eye) return;
+  if (!eye || !eye->eyelid_gif) return;
 
-  // 如果还有剩余的眨眼次数或设置为无限眨眼
+  /* 如果是无限眨眼 或 还有剩余次数 */
   if (eye->blink_remaining == -1 || eye->blink_remaining > 0) {
     perform_single_blink(eye);
-  }
 
-  // 如果眨眼次数用完，停止定时器
-  if (eye->blink_remaining == 0) {
-    lv_timer_pause(eye->blink_timer);
+    if (eye->blink_remaining > 0) {
+      eye->blink_remaining--;
+      if (eye->blink_remaining == 0) {
+        lv_timer_pause(timer);  // 次数用完自动暂停
+      }
+    }
   }
 }
 
 /* ==================== 创建眼睛 ==================== */
 static void eye_create(lv_disp_t *disp, struct eye_t *eye,
                        const char *eye_gif_path, const char *eyelid_gif_path,
-                       int32_t max_offset) {
+                       int32_t max_offset, uint32_t blink_interval,
+                       int32_t blink_remaining) {
   lv_obj_t *scr = lv_disp_get_scr_act(disp);
 
   eye->disp = disp;
+  eye->max_offset = max_offset;
+  eye->blink_remaining = blink_remaining;
+  eye->blink_interval = blink_interval;
 
   eye->eye_gif = lv_gif_create(scr);
   lv_gif_set_src(eye->eye_gif, eye_gif_path);
@@ -118,38 +87,87 @@ static void eye_create(lv_disp_t *disp, struct eye_t *eye,
   eye->eyelid_gif = lv_gif_create(scr);
   lv_gif_set_src(eye->eyelid_gif, eyelid_gif_path);
   lv_obj_center(eye->eyelid_gif);
-
-  /* 初始状态：暂停 + 只播放一轮（安全） */
-  // lv_gif_pause(eye->eyelid_gif);
-  // lv_gif_set_loop_count(eye->eyelid_gif, 1);
-
-  eye->max_offset = max_offset;
-  eye->blink_remaining = 0;
-  eye->blink_interval = 3000;  // 默认3秒眨眼一次
-  eye->is_blinking = false;
+  lv_gif_pause(eye->eyelid_gif);
 
   // 创建眨眼定时器（初始为暂停状态）
-  // eye->blink_timer = lv_timer_create(blink_timer_cb, eye->blink_interval, eye);
-  // lv_timer_pause(eye->blink_timer);
+  eye->blink_timer = lv_timer_create(blink_timer_cb, eye->blink_interval, eye);
+  lv_timer_pause(eye->blink_timer);
+
+  if (0 == blink_remaining) {  // 不持续眨眼
+  } else if (blink_remaining > 0) {
+    lv_gif_set_loop_count(eye->eyelid_gif, 1);
+    if (1 != blink_remaining) {
+      if (blink_interval == 0) {
+        lv_gif_set_loop_count(eye->eyelid_gif, blink_remaining);
+      } else {
+        eye->blink_remaining++;  // 用于timer cb
+        // 每次眨眼间隔一段时间，在timer cb里处理参数 blink_remaining
+        lv_timer_set_period(eye->blink_timer, blink_interval);
+        lv_timer_resume(eye->blink_timer);
+      }
+    }
+    lv_gif_resume(eye->eyelid_gif);
+  } else {  // -1 一直眨眼
+    if (blink_interval) {
+      lv_gif_set_loop_count(eye->eyelid_gif, 1);
+      lv_timer_set_period(eye->blink_timer, blink_interval);
+      lv_timer_resume(eye->blink_timer);
+      lv_gif_resume(eye->eyelid_gif);
+    }
+  }
 }
 
 /* ==================== 眨眼控制函数 ==================== */
+/* ==================== 眨眼控制函数（完全重构版，逻辑与 eye_create 完全一致）
+ * ==================== */
 void eye_blink(struct eye_t *eye, uint32_t interval_ms, int32_t count) {
-  if (!eye || !eye->blink_timer) return;
+  if (!eye || !eye->blink_timer || !eye->eyelid_gif) return;
 
-  // 停止当前的眨眼
+  /* 1. 先停掉当前所有眨眼行为 */
   lv_timer_pause(eye->blink_timer);
+  lv_gif_pause(eye->eyelid_gif);
 
-  // 设置新的眨眼参数
+  /* 2. 更新参数 */
   eye->blink_interval = interval_ms;
-  eye->blink_remaining = count;
+  eye->blink_remaining = count;  // 直接赋值，后面会根据情况处理
 
-  // 更新定时器周期
-  lv_timer_set_period(eye->blink_timer, interval_ms);
+  /* 3. 设置 GIF 为单次播放（无论多少次，都每次只播一次，由定时器触发） */
+  lv_gif_set_loop_count(eye->eyelid_gif, 1);
 
-  // 如果还有眨眼次数，启动定时器
-  if (count != 0) {
-    lv_timer_resume(eye->blink_timer);
+  /* 4. 分类处理三种情况（和 eye_create 完全一致的逻辑） */
+  if (count == 0) {
+    /* 不眨眼：什么都不做，保持暂停 */
+    return;
+  } else if (count > 0) {
+    /* 眨眼有限次数 */
+    if (interval_ms == 0) {
+      /* 间隔为0 → 连续播放 count 次（不推荐，基本不用） */
+      lv_gif_set_loop_count(eye->eyelid_gif, count);
+      lv_gif_restart(eye->eyelid_gif);  // 从头开始播 count 次
+    } else {
+      /* 有间隔 → 用定时器控制，每次触发播一次 */
+      lv_timer_set_period(eye->blink_timer, interval_ms);
+      lv_timer_resume(eye->blink_timer);  // 启动定时器
+
+      /* 第一次立即触发一次（与 eye_create 行为一致） */
+      perform_single_blink(eye);
+      eye->blink_remaining--;  // 已经眨了一次
+    }
+  } else {  // count == -1
+    /* 无限眨眼 */
+    if (interval_ms == 0) {
+      /* 间隔为0 → GIF 无限循环（极少用） */
+      lv_gif_set_loop_count(eye->eyelid_gif, 0);  // 0 = 无限循环
+      lv_gif_restart(eye->eyelid_gif);
+    } else {
+      /* 正常无限眨眼：定时器每隔 interval_ms 触发一次 */
+      lv_timer_set_period(eye->blink_timer, interval_ms);
+      lv_timer_resume(eye->blink_timer);
+
+      /* 立即眨一次（与 eye_create 一致） */
+      perform_single_blink(eye);
+      eye->blink_remaining = -1;  // 保持 -1
+    }
   }
 }
 
@@ -313,9 +331,22 @@ void eye_controller_init(struct eye_t *left_eye, struct eye_t *right_eye,
   lv_display_set_buffers(disp1, buf00, buf01, sizeof(buf00),
                          LV_DISPLAY_RENDER_MODE_PARTIAL);
 
-  eye_create(disp0, left_eye, left_eye_path, left_eyelid_path, max_offset_px);
-  eye_create(disp1, right_eye, right_eye_path, right_eyelid_path,
-             max_offset_px);
+  // eye_create(disp0, left_eye, left_eye_path, left_eyelid_path, max_offset_px,
+  //            2000, -1);
+  // eye_create(disp1, right_eye, right_eye_path, right_eyelid_path,
+  // max_offset_px,
+  //            2000, -1); // 间隔2s无限循环眨眼
+
+  eye_create(disp0, left_eye, left_eye_path, left_eyelid_path, max_offset_px,
+             2000, 0);
+  eye_create(disp1, right_eye, right_eye_path, right_eyelid_path, max_offset_px,
+             2000, 0);  // 不眨眼
+
+  // eye_blink(left_eye, 2000, 3); // 间隔2s眨眼3次
+  // eye_blink(right_eye, 2000, 3);
+
+  eye_blink(left_eye, 2000, -1);  // 间隔2s无限循环眨眼
+  eye_blink(right_eye, 2000, -1);
 }
 
 /**
@@ -347,7 +378,6 @@ void eye_destroy(struct eye_t *eye) {
   eye->max_offset = 0;
   eye->blink_remaining = 0;
   eye->blink_interval = 0;
-  eye->is_blinking = false;
 }
 
 void eye_controller_deinit(struct eye_t *left_eye, struct eye_t *right_eye) {

@@ -16,7 +16,6 @@ struct eye_t {
   int max_offset;  // 允许的最大偏移像素（根据眼白大小调整）
   int32_t blink_remaining;  // 还剩几次要眨（-1=无限）
   uint32_t blink_interval;  // 眨眼间隔（毫秒）
-  bool is_blinking;         // 是否正在眨眼
 };
 /* ==================== 函数声明 ==================== */
 
