@@ -35,7 +35,7 @@
 
 #include "lvgl.h"
 
-#define SCREEN_DIAMETER 240  // px
+#define SCREEN_DIAMETER 160  // px
 
 __attribute__((section(".fast_ram")))
 lv_color_t buf00[SCREEN_DIAMETER * SCREEN_DIAMETER / 2];
@@ -120,8 +120,8 @@ static void eye_create(lv_disp_t *disp, struct eye_t *eye,
   lv_obj_center(eye->eyelid_gif);
 
   /* 初始状态：暂停 + 只播放一轮（安全） */
-  lv_gif_pause(eye->eyelid_gif);
-  lv_gif_set_loop_count(eye->eyelid_gif, 1);
+  // lv_gif_pause(eye->eyelid_gif);
+  // lv_gif_set_loop_count(eye->eyelid_gif, 1);
 
   eye->max_offset = max_offset;
   eye->blink_remaining = 0;
@@ -129,8 +129,8 @@ static void eye_create(lv_disp_t *disp, struct eye_t *eye,
   eye->is_blinking = false;
 
   // 创建眨眼定时器（初始为暂停状态）
-  eye->blink_timer = lv_timer_create(blink_timer_cb, eye->blink_interval, eye);
-  lv_timer_pause(eye->blink_timer);
+  // eye->blink_timer = lv_timer_create(blink_timer_cb, eye->blink_interval, eye);
+  // lv_timer_pause(eye->blink_timer);
 }
 
 /* ==================== 眨眼控制函数 ==================== */

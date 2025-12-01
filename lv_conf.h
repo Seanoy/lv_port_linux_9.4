@@ -625,13 +625,13 @@
 #define LV_FONT_MONTSERRAT_48 0
 
 /* Demonstrate special features */
-#define LV_FONT_MONTSERRAT_28_COMPRESSED    1
-#define LV_FONT_DEJAVU_16_PERSIAN_HEBREW    1
+#define LV_FONT_MONTSERRAT_28_COMPRESSED    0
+#define LV_FONT_DEJAVU_16_PERSIAN_HEBREW    0
 #define LV_FONT_SOURCE_HAN_SANS_SC_14_CJK   0  /**< 1338 most common CJK radicals */
-#define LV_FONT_SOURCE_HAN_SANS_SC_16_CJK   1
+#define LV_FONT_SOURCE_HAN_SANS_SC_16_CJK   0
 
 /** Pixel perfect monospaced fonts */
-#define LV_FONT_UNSCII_8  1
+#define LV_FONT_UNSCII_8  0
 #define LV_FONT_UNSCII_16 0
 
 /** Optionally declare custom fonts here.
@@ -657,7 +657,7 @@
 #define LV_USE_FONT_COMPRESSED 0
 
 /** Enable drawing placeholders when glyph dsc is not found. */
-#define LV_USE_FONT_PLACEHOLDER 1
+#define LV_USE_FONT_PLACEHOLDER 0
 
 /*=================
  *  TEXT SETTINGS
@@ -718,21 +718,21 @@
  *  - lv_label_t       :  Text set to "Text", else empty string.
  *  - lv_arclabel_t   :  Text set to "Arced Text", else empty string.
  * */
-#define LV_WIDGETS_HAS_DEFAULT_VALUE  1
+#define LV_WIDGETS_HAS_DEFAULT_VALUE  0
 
 #define LV_USE_ANIMIMG    1
 
-#define LV_USE_ARC        1
+#define LV_USE_ARC        0
 
-#define LV_USE_ARCLABEL  1
+#define LV_USE_ARCLABEL  0
 
-#define LV_USE_BAR        1
+#define LV_USE_BAR        0
 
-#define LV_USE_BUTTON        1
+#define LV_USE_BUTTON        0
 
-#define LV_USE_BUTTONMATRIX  1
+#define LV_USE_BUTTONMATRIX  0
 
-#define LV_USE_CALENDAR   1
+#define LV_USE_CALENDAR   0
 #if LV_USE_CALENDAR
     #define LV_CALENDAR_WEEK_STARTS_MONDAY 0
     #if LV_CALENDAR_WEEK_STARTS_MONDAY
@@ -749,67 +749,67 @@
 
 #define LV_USE_CANVAS     1
 
-#define LV_USE_CHART      1
+#define LV_USE_CHART      0
 
-#define LV_USE_CHECKBOX   1
+#define LV_USE_CHECKBOX   0
 
-#define LV_USE_DROPDOWN   1   /**< Requires: lv_label */
+#define LV_USE_DROPDOWN   0   /**< Requires: lv_label */
 
 #define LV_USE_IMAGE      1   /**< Requires: lv_label */
 
-#define LV_USE_IMAGEBUTTON     1
+#define LV_USE_IMAGEBUTTON     0
 
-#define LV_USE_KEYBOARD   1
+#define LV_USE_KEYBOARD   0
 
 #define LV_USE_LABEL      1
 #if LV_USE_LABEL
-    #define LV_LABEL_TEXT_SELECTION 1   /**< Enable selecting text of the label */
-    #define LV_LABEL_LONG_TXT_HINT 1    /**< Store some extra info in labels to speed up drawing of very long text */
+    #define LV_LABEL_TEXT_SELECTION 0   /**< Enable selecting text of the label */
+    #define LV_LABEL_LONG_TXT_HINT 0    /**< Store some extra info in labels to speed up drawing of very long text */
     #define LV_LABEL_WAIT_CHAR_COUNT 3  /**< The count of wait chart */
 #endif
 
-#define LV_USE_LED        1
+#define LV_USE_LED        0
 
-#define LV_USE_LINE       1
+#define LV_USE_LINE       0
 
-#define LV_USE_LIST       1
+#define LV_USE_LIST       0
 
-#define LV_USE_LOTTIE     1
+#define LV_USE_LOTTIE     0
 
-#define LV_USE_MENU       1
+#define LV_USE_MENU       0
 
-#define LV_USE_MSGBOX     1
+#define LV_USE_MSGBOX     0
 
-#define LV_USE_ROLLER     1   /**< Requires: lv_label */
+#define LV_USE_ROLLER     0   /**< Requires: lv_label */
 
-#define LV_USE_SCALE      1
+#define LV_USE_SCALE      0
 
-#define LV_USE_SLIDER     1   /**< Requires: lv_bar */
+#define LV_USE_SLIDER     0   /**< Requires: lv_bar */
 
-#define LV_USE_SPAN       1
+#define LV_USE_SPAN       0
 #if LV_USE_SPAN
     /** A line of text can contain this maximum number of span descriptors. */
     #define LV_SPAN_SNIPPET_STACK_SIZE 64
 #endif
 
-#define LV_USE_SPINBOX    1
+#define LV_USE_SPINBOX    0
 
-#define LV_USE_SPINNER    1
+#define LV_USE_SPINNER    0
 
-#define LV_USE_SWITCH     1
+#define LV_USE_SWITCH     0
 
-#define LV_USE_TABLE      1
+#define LV_USE_TABLE      0
 
-#define LV_USE_TABVIEW    1
+#define LV_USE_TABVIEW    0
 
-#define LV_USE_TEXTAREA   1   /**< Requires: lv_label */
+#define LV_USE_TEXTAREA   0   /**< Requires: lv_label */
 #if LV_USE_TEXTAREA != 0
     #define LV_TEXTAREA_DEF_PWD_SHOW_TIME 1500    /**< [ms] */
 #endif
 
-#define LV_USE_TILEVIEW   1
+#define LV_USE_TILEVIEW   0
 
-#define LV_USE_WIN        1
+#define LV_USE_WIN        0
 
 #define LV_USE_3DTEXTURE  0
 
@@ -819,7 +819,7 @@
 /* Documentation for themes can be found here: https://docs.lvgl.io/master/details/common-widget-features/styles/styles.html#themes . */
 
 /** A simple, impressive and very complete theme */
-#define LV_USE_THEME_DEFAULT 1
+#define LV_USE_THEME_DEFAULT 0
 #if LV_USE_THEME_DEFAULT
     /** 0: Light mode; 1: Dark mode */
     #define LV_THEME_DEFAULT_DARK 0
@@ -832,10 +832,10 @@
 #endif /*LV_USE_THEME_DEFAULT*/
 
 /** A very simple theme that is a good starting point for a custom theme */
-#define LV_USE_THEME_SIMPLE 1
+#define LV_USE_THEME_SIMPLE 0
 
 /** A theme designed for monochrome displays */
-#define LV_USE_THEME_MONO 1
+#define LV_USE_THEME_MONO 0
 
 /*==================
  * LAYOUTS
@@ -843,10 +843,10 @@
 /* Documentation for layouts can be found here: https://docs.lvgl.io/master/details/common-widget-features/layouts/index.html . */
 
 /** A layout similar to Flexbox in CSS. */
-#define LV_USE_FLEX 1
+#define LV_USE_FLEX 0
 
 /** A layout similar to Grid in CSS. */
-#define LV_USE_GRID 1
+#define LV_USE_GRID 0
 
 /*====================
  * 3RD PARTS LIBRARIES
@@ -937,11 +937,11 @@
 #define LV_USE_LIBPNG 0
 
 /** BMP decoder library */
-#define LV_USE_BMP 1
+#define LV_USE_BMP 0
 
 /** JPG + split JPG decoder library.
  *  Split JPG is a custom format optimized for embedded systems. */
-#define LV_USE_TJPGD 1
+#define LV_USE_TJPGD 0
 
 /** libjpeg-turbo decoder library.
  *  - Supports complete JPEG specifications and high-performance JPEG decoding. */
@@ -958,16 +958,16 @@
 #define LV_USE_GSTREAMER 0
 
 /** Decode bin images to RAM */
-#define LV_BIN_DECODER_RAM_LOAD 1
+#define LV_BIN_DECODER_RAM_LOAD 0
 
 /** RLE decompress library */
-#define LV_USE_RLE 1
+#define LV_USE_RLE 0
 
 /** QR code library */
-#define LV_USE_QRCODE 1
+#define LV_USE_QRCODE 0
 
 /** Barcode code library */
-#define LV_USE_BARCODE 1
+#define LV_USE_BARCODE 0
 
 /** FreeType library */
 #define LV_USE_FREETYPE 0
@@ -981,7 +981,7 @@
 #endif
 
 /** Built-in TTF decoder */
-#define LV_USE_TINY_TTF 1
+#define LV_USE_TINY_TTF 0
 #if LV_USE_TINY_TTF
     /* Enable loading TTF data from files */
     #define LV_TINY_TTF_FILE_SUPPORT 0
@@ -997,11 +997,11 @@
 
 /** Enable Vector Graphic APIs
  *  Requires `LV_USE_MATRIX = 1` */
-#define LV_USE_VECTOR_GRAPHIC  1
+#define LV_USE_VECTOR_GRAPHIC  0
 
 /** Enable ThorVG (vector graphics library) from the src/libs folder.
  *  Requires LV_USE_VECTOR_GRAPHIC */
-#define LV_USE_THORVG_INTERNAL 1 
+#define LV_USE_THORVG_INTERNAL 0
 
 /** Enable ThorVG by assuming that its installed and linked to the project
  *  Requires LV_USE_VECTOR_GRAPHIC */
@@ -1142,10 +1142,10 @@
 #define LV_USE_FRAGMENT 0
 
 /** 1: Support using images as font in label or span widgets */
-#define LV_USE_IMGFONT 1
+#define LV_USE_IMGFONT 0
 
 /** 1: Enable an observer pattern implementation */
-#define LV_USE_OBSERVER 1
+#define LV_USE_OBSERVER 0
 
 /** 1: Enable Pinyin input method
  *  - Requires: lv_keyboard */

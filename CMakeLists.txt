@@ -291,7 +291,7 @@ target_include_directories(lvgl_linux PUBLIC
 
 # Link LVGL with external dependencies - Modern CMake/CMP0079 allows this
 target_compile_options(lvglsim PRIVATE
-    -O3 -pipe
+    -O2 -pipe
     -march=armv7-a
     -mtune=cortex-a53
     -mfpu=neon-vfpv4
@@ -301,6 +301,7 @@ target_compile_options(lvglsim PRIVATE
     -flto
     -fno-math-errno
     -Wall
+    -fomit-frame-pointer
 )
 
 target_link_options(lvglsim PRIVATE -flto)
