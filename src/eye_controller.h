@@ -7,77 +7,58 @@
 extern "C" {
 #endif
 
-/* ==================== 眼睛控制器结构体 ==================== */
+/* 眼睛结构体 */
 struct eye_t {
-  lv_disp_t *disp;          // 显示的屏幕
-  lv_obj_t *eye_gif;        // 眼球动图（循环播放）
-  lv_obj_t *eyelid_gif;     // 眼睑动图（单次播放）
-  lv_timer_t *blink_timer;  // 眨眼定时器
-  int max_offset;  // 允许的最大偏移像素（根据眼白大小调整）
-  int32_t blink_remaining;  // 还剩几次要眨（-1=无限）
-  uint32_t blink_interval;  // 眨眼间隔（毫秒）
+  lv_disp_t *disp;       // 关联的显示器
+  lv_obj_t *eye_gif;     // 眼球GIF对象
+  lv_obj_t *eyelid_gif;  // 眼睑GIF对象
+  int32_t max_offset;    // 最大偏移量
 };
-/* ==================== 函数声明 ==================== */
 
-/**
- * @brief 初始化眼睛
- * @param left_eye 右眼结构体指针
- * @param right_eye 右眼结构体指针
- * @param left_eye_path 初始眼球GIF路径
- * @param left_eyelid_path 初始左眼睑GIF路径
- * @param right_eye_path 初始右眼球GIF路径
- * @param right_eyelid_path 初始右眼睑GIF路径
- * @param max_offset 最大偏移像素
- */
+/* 眼皮控制器结构体 */
+typedef struct eyelid_controller_t {
+  struct eye_t *left_eye;   // 左眼指针
+  struct eye_t *right_eye;  // 右眼指针
+  lv_timer_t *blink_timer;  // 统一的眨眼定时器
+  uint32_t blink_interval;  // 眨眼间隔
+  int32_t blink_remaining;  // 剩余眨眼次数
+} eyelid_controller_t;
+
+/* 初始化眼睛控制器 */
 void eye_controller_init(struct eye_t *left_eye, struct eye_t *right_eye,
                          char *left_eye_path, char *left_eyelid_path,
                          char *right_eye_path, char *right_eyelid_path,
                          uint32_t max_offset_px);
 
-/**
- * @brief 反初始化眼睛
- * @param left_eye 右眼结构体指针
- * @param right_eye 右眼结构体指针
- */
-void eye_controller_deinit(struct eye_t *left_eye, struct eye_t *right_eye);
+/* 反初始化 */
+void eye_controller_deinit(void);
 
-/**
- * @brief 控制眼睛看向指定位置
- * @param eye 眼睛结构体指针
- * @param tx X轴偏移量
- * @param ty Y轴偏移量
- * @note 坐标轴原点是屏幕中心 →x ↓y
- */
+/* 主任务循环 */
+void eye_controller_task(void);
+
+/* 同步控制两个眼皮 */
+void eyelid_blink(uint32_t interval_ms, int32_t count);
+void eyelid_blink_once(void);
+
+/* 单独控制左眼皮 */
+void left_eyelid_blink(uint32_t interval_ms, int32_t count);
+void left_eyelid_blink_once(void);
+
+/* 单独控制右眼皮 */
+void right_eyelid_blink(uint32_t interval_ms, int32_t count);
+void right_eyelid_blink_once(void);
+
+/* 视线控制 */
 void eye_look_at(struct eye_t *eye, int32_t tx, int32_t ty);
+void left_eye_look_at(int32_t tx, int32_t ty);
+void right_eye_look_at(int32_t tx, int32_t ty);
 
-/**
- * @brief 控制眨眼频率和次数
- * @param eye 眼睛结构体指针
- * @param interval_ms 眨眼间隔时间（毫秒）
- * @param count 眨眼次数（-1=无限，0=停止，>0=具体次数）
- */
-void eye_blink(struct eye_t *eye, uint32_t interval_ms, int32_t count);
-
-/**
- * @brief 立即眨眼一次
- * @param eye 眼睛结构体指针
- */
-void eye_blink_once(struct eye_t *eye);
-
-/**
- * @brief 切换眼睛素材
- * @param eye 眼睛结构体指针
- * @param eye_gif_path 新的眼球GIF路径
- * @param eyelid_gif_path 新的眼睑GIF路径
- * @param max_offset_px 最大偏移像素
- */
+/* 素材切换 */
 void eye_switch_material(struct eye_t *eye, const char *eye_gif_path,
                          const char *eyelid_gif_path, int32_t max_offset_px);
 
-/**
- * @brief 渲染主循环
- */
-void eye_controller_task(void);
+/* 销毁单个眼睛对象 */
+void eye_destroy(struct eye_t *eye);
 
 #ifdef __cplusplus
 }

@@ -19,13 +19,14 @@ int main(void) {
   // eye_look_at(&left_eye, 22, -16);  // 双眼往右上看
   // eye_look_at(&right_eye, 22, -16);
 
+  // left_eyelid_blink_once();
+  // right_eyelid_blink_once();
+
   // // 设置眨眼频率：每2.2秒眨眼一次，连续眨眼2次
-  // eye_blink(&left_eye, 2200, 2);
-  // eye_blink(&right_eye, 2200, 2);
+  // eyelid_blink(20000, 10);
 
   // // 或者设置为持续眨眼（无限次数）
-  // eye_blink(&left_eye, 3000, -1);  // 每3秒眨眼一次，无限循环
-  // eye_blink(&right_eye, 3000, -1);
+  // eyelid_blink(3000, -1);  // 每3秒眨眼一次，无限循环
 
   // 渲染循环
   eye_controller_task();
