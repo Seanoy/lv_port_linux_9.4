@@ -10,6 +10,7 @@ extern "C" {
 /* 眼睛结构体 */
 struct eye_t {
   lv_disp_t *disp;       // 关联的显示器
+  lv_obj_t *container;   // 眼球+高光的容器（用于平移）
   lv_obj_t *eye_gif;     // 眼球GIF对象
   lv_obj_t *highlight;   // 高光 PNG（固定）
   lv_obj_t *eyelid_gif;  // 眼睑GIF对象

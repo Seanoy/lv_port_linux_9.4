@@ -100,28 +100,38 @@ static void eye_create(lv_disp_t *disp, struct eye_t *eye,
                        const char *highlight_png_path, int32_t max_offset) {
   lv_obj_t *scr = lv_disp_get_scr_act(disp);
 
-  eye->disp = disp;
-  eye->max_offset = max_offset;
+  /* 1. 创建一个透明容器，专门用来装眼球+高光（以后只平移这个容器） */
+  eye->container = lv_obj_create(scr);
+  lv_obj_remove_style_all(eye->container);
+  lv_obj_clear_flag(eye->container, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_set_size(eye->container, SCREEN_DIAMETER, SCREEN_DIAMETER);
+  lv_obj_center(eye->container);
+  lv_obj_set_style_bg_opa(eye->container, LV_OPA_TRANSP, 0);
 
-  lv_obj_t *bg = lv_obj_create(scr);
-  lv_obj_set_size(bg, LV_PCT(240), LV_PCT(240));
-  lv_obj_set_style_bg_color(bg, lv_color_make(203, 198, 193), 0);  // 眼底色
-  lv_obj_set_style_bg_opa(bg, LV_OPA_COVER, 0);
-  lv_obj_move_background(bg);  // 确保在最底层
-
-  eye->eye_gif = lv_gif_create(scr);
+  /* 2. 眼球 GIF（作为容器的子对象） */
+  eye->eye_gif = lv_gif_create(eye->container);  // 关键：父对象是 container
   lv_gif_set_src(eye->eye_gif, eye_gif_path);
   lv_obj_center(eye->eye_gif);
+  lv_obj_set_style_bg_opa(eye->eye_gif, LV_OPA_TRANSP, 0);
 
-  eye->highlight = lv_img_create(scr);  // 高光层
+  /* 3. 高光 PNG（也作为容器的子对象 → 自动跟随眼球移动！） */
+  eye->highlight = lv_img_create(eye->container);  // 关键：父对象是 container
   lv_img_set_src(eye->highlight, highlight_png_path);
   lv_obj_center(eye->highlight);
-  lv_obj_set_style_img_recolor_opa(eye->highlight, 0, 0);  // 不变色
+  // 可选：微调高光位置（让它更闪！）
+  lv_obj_align(eye->highlight, LV_ALIGN_CENTER, 1, -5);
 
-  eye->eyelid_gif = lv_gif_create(scr);
+  /* 4. 眼睑 GIF（独立在屏幕上，最上层，盖住整个容器） */
+  eye->eyelid_gif = lv_gif_create(scr);  // 父对象是 scr
   lv_gif_set_src(eye->eyelid_gif, eyelid_gif_path);
   lv_obj_center(eye->eyelid_gif);
+  lv_obj_set_style_bg_opa(eye->eyelid_gif, LV_OPA_TRANSP, 0);
+
+  /* 初始状态：暂停 + 单次播放 */
   lv_gif_pause(eye->eyelid_gif);
+  lv_gif_set_loop_count(eye->eyelid_gif, 1);
+
+  eye->max_offset = max_offset;
 }
 
 /* ==================== 统一的眼皮眨眼控制函数 ==================== */
@@ -252,36 +262,27 @@ static void look_at_anim_y(void *obj, int32_t v) {
 }
 
 void eye_look_at(struct eye_t *eye, int32_t tx, int32_t ty) {
-  if (!eye || !eye->eye_gif) return;
+  if (!eye || !eye->container) return;  // 改成移动 container
 
-  int32_t x = tx;
-  int32_t y = ty;
-  if (x > eye->max_offset) x = eye->max_offset;
-  if (x < -eye->max_offset) x = -eye->max_offset;
-  if (y > eye->max_offset) y = eye->max_offset;
-  if (y < -eye->max_offset) y = -eye->max_offset;
+  int32_t x = LV_CLAMP(tx, -eye->max_offset, eye->max_offset);
+  int32_t y = LV_CLAMP(ty, -eye->max_offset, eye->max_offset);
 
-  /* X 轴动画 */
-  lv_anim_t ax;
-  lv_anim_init(&ax);
-  lv_anim_set_var(&ax, eye->eye_gif);
-  lv_anim_set_values(&ax, lv_obj_get_style_translate_x(eye->eye_gif, 0), x);
-  lv_anim_set_exec_cb(&ax, look_at_anim_x);
-  lv_anim_set_time(&ax, 180);
-  lv_anim_set_path_cb(&ax, lv_anim_path_ease_out);
-  lv_anim_start(&ax);
+  lv_anim_t a;
+  lv_anim_init(&a);
+  lv_anim_set_var(&a, eye->container);  // 只动容器
+  lv_anim_set_time(&a, 180);
+  lv_anim_set_path_cb(&a, lv_anim_path_ease_out);
 
-  /* Y 轴动画 */
-  lv_anim_t ay;
-  lv_anim_init(&ay);
-  lv_anim_set_var(&ay, eye->eye_gif);
-  lv_anim_set_values(&ay, lv_obj_get_style_translate_y(eye->eye_gif, 0), y);
-  lv_anim_set_exec_cb(&ay, look_at_anim_y);
-  lv_anim_set_time(&ay, 180);
-  lv_anim_set_path_cb(&ay, lv_anim_path_ease_out);
-  lv_anim_start(&ay);
+  /* X */
+  lv_anim_set_values(&a, lv_obj_get_style_translate_x(eye->container, 0), x);
+  lv_anim_set_exec_cb(&a, (lv_anim_exec_xcb_t)lv_obj_set_style_translate_x);
+  lv_anim_start(&a);
+
+  /* Y */
+  lv_anim_set_values(&a, lv_obj_get_style_translate_y(eye->container, 0), y);
+  lv_anim_set_exec_cb(&a, (lv_anim_exec_xcb_t)lv_obj_set_style_translate_y);
+  lv_anim_start(&a);
 }
-
 // 保持独立控制眼球的函数
 void left_eye_look_at(int32_t tx, int32_t ty) {
   eyelid_controller_t *controller = &g_eyelid_controller;
