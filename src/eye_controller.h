@@ -11,6 +11,7 @@ extern "C" {
 struct eye_t {
   lv_disp_t *disp;       // 关联的显示器
   lv_obj_t *eye_gif;     // 眼球GIF对象
+  lv_obj_t *highlight;   // 高光 PNG（固定）
   lv_obj_t *eyelid_gif;  // 眼睑GIF对象
   int32_t max_offset;    // 最大偏移量
 };
@@ -25,10 +26,11 @@ typedef struct eyelid_controller_t {
 } eyelid_controller_t;
 
 /* 初始化眼睛控制器 */
-void eye_controller_init(struct eye_t *left_eye, struct eye_t *right_eye,
-                         char *left_eye_path, char *left_eyelid_path,
-                         char *right_eye_path, char *right_eyelid_path,
-                         uint32_t max_offset_px);
+void eye_controller_init(
+    struct eye_t *left_eye, struct eye_t *right_eye, const char *left_eye_path,
+    const char *left_eyelid_path, const char *left_highlight_path,
+    const char *right_eye_path, const char *right_eyelid_path,
+    const char *right_highlight_path, uint32_t max_offset_px);
 
 /* 反初始化 */
 void eye_controller_deinit(void);

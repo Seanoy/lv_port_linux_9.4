@@ -4,13 +4,16 @@
 #define LEFT_EYELID_GIF "A:/mnt/data/panel/normal_left_eyelid.gif"
 #define RIGHT_EYE_GIF "A:/mnt/data/panel/normal_right_eye.gif"
 #define RIGHT_EYELID_GIF "A:/mnt/data/panel/normal_right_eyelid.gif"
+#define LEFT_HIGHLIGHT_PNG "A:/mnt/data/panel/left_highlight.png"
+#define RIGHT_HIGHLIGHT_PNG "A:/mnt/data/panel/right_highlight.png"
 #define DOG_GIF "A:/mnt/data/panel/dog.gif"
 #define CAT_GIF "A:/mnt/data/panel/cat.gif"
 
 int main(void) {
   struct eye_t left_eye, right_eye;
   eye_controller_init(&left_eye, &right_eye, LEFT_EYE_GIF, LEFT_EYELID_GIF,
-                      RIGHT_EYE_GIF, RIGHT_EYELID_GIF, 28);
+                      LEFT_HIGHLIGHT_PNG, RIGHT_EYE_GIF, RIGHT_EYELID_GIF,
+                      RIGHT_HIGHLIGHT_PNG, 28);
 
   // // 传入素材的路径，max_offset_px是限制的最大的偏移像素
   // eye_switch_material(&left_eye, CAT_GIF, NULL, 28);

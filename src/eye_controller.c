@@ -97,7 +97,7 @@ static void unified_eyelid_blink_timer_cb(lv_timer_t *timer) {
 /* ==================== 创建眼睛（移除独立的眨眼定时器） ==================== */
 static void eye_create(lv_disp_t *disp, struct eye_t *eye,
                        const char *eye_gif_path, const char *eyelid_gif_path,
-                       int32_t max_offset) {
+                       const char *highlight_png_path, int32_t max_offset) {
   lv_obj_t *scr = lv_disp_get_scr_act(disp);
 
   eye->disp = disp;
@@ -105,13 +105,18 @@ static void eye_create(lv_disp_t *disp, struct eye_t *eye,
 
   lv_obj_t *bg = lv_obj_create(scr);
   lv_obj_set_size(bg, LV_PCT(240), LV_PCT(240));
-  lv_obj_set_style_bg_color(bg, lv_color_white(), 0);
+  lv_obj_set_style_bg_color(bg, lv_color_make(203, 198, 193), 0);  // 眼底色
   lv_obj_set_style_bg_opa(bg, LV_OPA_COVER, 0);
   lv_obj_move_background(bg);  // 确保在最底层
 
   eye->eye_gif = lv_gif_create(scr);
   lv_gif_set_src(eye->eye_gif, eye_gif_path);
   lv_obj_center(eye->eye_gif);
+
+  eye->highlight = lv_img_create(scr);  // 高光层
+  lv_img_set_src(eye->highlight, highlight_png_path);
+  lv_obj_center(eye->highlight);
+  lv_obj_set_style_img_recolor_opa(eye->highlight, 0, 0);  // 不变色
 
   eye->eyelid_gif = lv_gif_create(scr);
   lv_gif_set_src(eye->eyelid_gif, eyelid_gif_path);
@@ -385,10 +390,11 @@ static void print_fps(void) {
   }
 }
 
-void eye_controller_init(struct eye_t *left_eye, struct eye_t *right_eye,
-                         char *left_eye_path, char *left_eyelid_path,
-                         char *right_eye_path, char *right_eyelid_path,
-                         uint32_t max_offset_px) {
+void eye_controller_init(
+    struct eye_t *left_eye, struct eye_t *right_eye, const char *left_eye_path,
+    const char *left_eyelid_path, const char *left_highlight_path,
+    const char *right_eye_path, const char *right_eyelid_path,
+    const char *right_highlight_path, uint32_t max_offset_px) {
   lv_init();
   backlight_init_dual();
   lv_tick_set_cb(custom_tick_get);
@@ -408,9 +414,10 @@ void eye_controller_init(struct eye_t *left_eye, struct eye_t *right_eye,
                          LV_DISPLAY_RENDER_MODE_DIRECT);
 
   // 初始化眼睛对象（不再创建独立定时器）
-  eye_create(disp0, left_eye, left_eye_path, left_eyelid_path, max_offset_px);
+  eye_create(disp0, left_eye, left_eye_path, left_eyelid_path,
+             left_highlight_path, max_offset_px);
   eye_create(disp1, right_eye, right_eye_path, right_eyelid_path,
-             max_offset_px);
+             right_highlight_path, max_offset_px);
 
   // 初始化眼皮控制器
   g_eyelid_controller.left_eye = left_eye;
