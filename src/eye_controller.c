@@ -105,7 +105,7 @@ static void eye_create(lv_disp_t *disp, struct eye_t *eye,
 
   lv_obj_t *bg = lv_obj_create(scr);
   lv_obj_set_size(bg, LV_PCT(240), LV_PCT(240));
-  lv_obj_set_style_bg_color(bg, lv_color_white(), 0);
+  lv_obj_set_style_bg_color(bg, lv_color_make(203, 198, 193), 0);  // 眼底色
   lv_obj_set_style_bg_opa(bg, LV_OPA_COVER, 0);
   lv_obj_move_background(bg);  // 确保在最底层
 
@@ -385,10 +385,11 @@ static void print_fps(void) {
   }
 }
 
-void eye_controller_init(struct eye_t *left_eye, struct eye_t *right_eye,
-                         char *left_eye_path, char *left_eyelid_path,
-                         char *right_eye_path, char *right_eyelid_path,
-                         uint32_t max_offset_px) {
+void eye_controller_init(
+    struct eye_t *left_eye, struct eye_t *right_eye, const char *left_eye_path,
+    const char *left_eyelid_path, lv_display_rotation_t rotation_left,
+    const char *right_eye_path, const char *right_eyelid_path,
+    lv_display_rotation_t rotation_right, uint32_t max_offset_px) {
   lv_init();
   backlight_init_dual();
   lv_tick_set_cb(custom_tick_get);
@@ -396,6 +397,7 @@ void eye_controller_init(struct eye_t *left_eye, struct eye_t *right_eye,
   lv_display_t *disp0 = lv_linux_fbdev_create();
   lv_linux_fbdev_set_file(disp0, "/dev/fb0");
   lv_display_set_resolution(disp0, SCREEN_DIAMETER, SCREEN_DIAMETER);
+  lv_display_set_rotation(disp0, rotation_left);
   lv_display_set_color_format(disp0, LV_COLOR_FORMAT_RGB565);
   lv_display_set_buffers(disp0, buf00, NULL, sizeof(buf00),
                          LV_DISPLAY_RENDER_MODE_DIRECT);
@@ -403,6 +405,7 @@ void eye_controller_init(struct eye_t *left_eye, struct eye_t *right_eye,
   lv_display_t *disp1 = lv_linux_fbdev_create();
   lv_linux_fbdev_set_file(disp1, "/dev/fb1");
   lv_display_set_resolution(disp1, SCREEN_DIAMETER, SCREEN_DIAMETER);
+  lv_display_set_rotation(disp1, rotation_right);
   lv_display_set_color_format(disp1, LV_COLOR_FORMAT_RGB565);
   lv_display_set_buffers(disp1, buf01, NULL, sizeof(buf01),
                          LV_DISPLAY_RENDER_MODE_DIRECT);

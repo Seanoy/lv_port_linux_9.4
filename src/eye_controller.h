@@ -25,10 +25,11 @@ typedef struct eyelid_controller_t {
 } eyelid_controller_t;
 
 /* 初始化眼睛控制器 */
-void eye_controller_init(struct eye_t *left_eye, struct eye_t *right_eye,
-                         char *left_eye_path, char *left_eyelid_path,
-                         char *right_eye_path, char *right_eyelid_path,
-                         uint32_t max_offset_px);
+void eye_controller_init(
+    struct eye_t *left_eye, struct eye_t *right_eye, const char *left_eye_path,
+    const char *left_eyelid_path, lv_display_rotation_t rotation_left,
+    const char *right_eye_path, const char *right_eyelid_path,
+    lv_display_rotation_t rotation_right, uint32_t max_offset_px);
 
 /* 反初始化 */
 void eye_controller_deinit(void);

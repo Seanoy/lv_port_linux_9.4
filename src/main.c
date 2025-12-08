@@ -4,17 +4,20 @@
 #define LEFT_EYELID_GIF "A:/mnt/data/panel/normal_left_eyelid.gif"
 #define RIGHT_EYE_GIF "A:/mnt/data/panel/normal_right_eye.gif"
 #define RIGHT_EYELID_GIF "A:/mnt/data/panel/normal_right_eyelid.gif"
-#define DOG_GIF "A:/mnt/data/panel/dog.gif"
-#define CAT_GIF "A:/mnt/data/panel/cat.gif"
+#define ANGRY_LEFT_EYE_GIF "A:/mnt/data/panel/angry_left_eye.gif"
+#define ANGRY_LEFT_EYELID_GIF "A:/mnt/data/panel/angry_left_eyelid.gif"
+#define ANGRY_RIGHT_EYE_GIF "A:/mnt/data/panel/angry_right_eye.gif"
+#define ANGRY_RIGHT_EYELID_GIF "A:/mnt/data/panel/angry_right_eyelid.gif"
 
 int main(void) {
   struct eye_t left_eye, right_eye;
   eye_controller_init(&left_eye, &right_eye, LEFT_EYE_GIF, LEFT_EYELID_GIF,
-                      RIGHT_EYE_GIF, RIGHT_EYELID_GIF, 28);
+                      LV_DISPLAY_ROTATION_90, RIGHT_EYE_GIF, RIGHT_EYELID_GIF,
+                      LV_DISPLAY_ROTATION_270, 28);
 
   // // 传入素材的路径，max_offset_px是限制的最大的偏移像素
-  // eye_switch_material(&left_eye, CAT_GIF, NULL, 28);
-  // eye_switch_material(&right_eye, DOG_GIF, NULL, 28);
+  eye_switch_material(&left_eye, ANGRY_LEFT_EYE_GIF, NULL, 28);
+  eye_switch_material(&right_eye, ANGRY_RIGHT_EYE_GIF, NULL, 28);
 
   // eye_look_at(&left_eye, 22, -16);  // 双眼往右上看
   // eye_look_at(&right_eye, 22, -16);
