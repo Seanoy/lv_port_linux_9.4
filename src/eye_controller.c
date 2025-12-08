@@ -133,7 +133,7 @@ static void eye_create(lv_disp_t *disp, struct eye_t *eye,
 }
 
 /* ==================== 统一的眼皮眨眼控制函数 ==================== */
-void eyelid_blink(uint32_t interval_ms, int32_t count) {
+static void _eyelid_blink_impl(uint32_t interval_ms, int32_t count) {
   eyelid_controller_t *controller = &g_eyelid_controller;
   if (!controller->left_eye && !controller->right_eye) return;
 
@@ -210,6 +210,30 @@ void eyelid_blink(uint32_t interval_ms, int32_t count) {
   }
 }
 
+typedef struct {
+    uint32_t interval_ms;
+    int32_t count;
+} blink_data_t;
+
+static void _eyelid_blink_async_cb(void *user_data) {
+    blink_data_t *data = (blink_data_t *)user_data;
+    if (data) {
+        _eyelid_blink_impl(data->interval_ms, data->count);
+        free(data);
+    }
+}
+
+void eyelid_blink(uint32_t interval_ms, int32_t count) {
+    blink_data_t *data = (blink_data_t *)malloc(sizeof(blink_data_t));
+    if (data) {
+        data->interval_ms = interval_ms;
+        data->count = count;
+        if (lv_async_call(_eyelid_blink_async_cb, data) != LV_RES_OK) {
+            free(data);
+        }
+    }
+}
+
 /* ==================== 立即眼皮眨眼一次 ==================== */
 void eyelid_blink_once(void) {
   eyelid_controller_t *controller = &g_eyelid_controller;
@@ -256,7 +280,7 @@ static void look_at_anim_y(void *obj, int32_t v) {
   lv_obj_set_style_translate_y(obj, v, 0);
 }
 
-void eye_look_at(struct eye_t *eye, int32_t tx, int32_t ty) {
+static void _eye_look_at_impl(struct eye_t *eye, int32_t tx, int32_t ty) {
   if (!eye || !eye->eye_gif) return;
 
   int32_t x = tx;
@@ -285,6 +309,32 @@ void eye_look_at(struct eye_t *eye, int32_t tx, int32_t ty) {
   lv_anim_set_time(&ay, 180);
   lv_anim_set_path_cb(&ay, lv_anim_path_ease_out);
   lv_anim_start(&ay);
+}
+
+typedef struct {
+    struct eye_t *eye;
+    int32_t x;
+    int32_t y;
+} look_at_data_t;
+
+static void _eye_look_at_async_cb(void *user_data) {
+    look_at_data_t *data = (look_at_data_t *)user_data;
+    if (data) {
+        _eye_look_at_impl(data->eye, data->x, data->y);
+        free(data);
+    }
+}
+
+void eye_look_at(struct eye_t *eye, int32_t tx, int32_t ty) {
+    look_at_data_t *data = (look_at_data_t *)malloc(sizeof(look_at_data_t));
+    if (data) {
+        data->eye = eye;
+        data->x = tx;
+        data->y = ty;
+        if (lv_async_call(_eye_look_at_async_cb, data) != LV_RES_OK) {
+            free(data);
+        }
+    }
 }
 
 // 保持独立控制眼球的函数
