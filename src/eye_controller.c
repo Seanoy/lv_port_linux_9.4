@@ -36,6 +36,7 @@
 #include "lvgl.h"
 
 #define SCREEN_DIAMETER 240  // px
+#define RANDOM_LOOK 0        // 随机移动视线测试
 
 __attribute__((section(".fast_ram")))
 lv_color_t buf00[SCREEN_DIAMETER * SCREEN_DIAMETER];
@@ -442,11 +443,20 @@ static void print_fps(void) {
   frame_counter++;
 
   // 每 500ms 更新一次 FPS 显示
-  if (now - last_fps_time >= 1000) {
+  if (now - last_fps_time >= 2000) {
     float fps = frame_counter * 1000.0f / (now - last_fps_time);
     printf("FPS: %.1f\n", fps);
     frame_counter = 0;
     last_fps_time = now;
+#if RANDOM_LOOK
+    int32_t rand_x = (rand() % 2 ? 1 : -1) *
+                     (rand() % g_eyelid_controller.left_eye->max_offset);
+    int32_t rand_y = (rand() % 2 ? 1 : -1) *
+                     (rand() % g_eyelid_controller.left_eye->max_offset);
+
+    eye_look_at(g_eyelid_controller.left_eye, rand_x, rand_y);
+    eye_look_at(g_eyelid_controller.right_eye, rand_x, rand_y);
+#endif
   }
 }
 
