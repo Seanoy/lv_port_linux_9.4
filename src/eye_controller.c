@@ -293,22 +293,78 @@ void right_eye_look_at(int32_t tx, int32_t ty) {
 }
 
 /* ==================== 3. 切换整套眼睛素材 ==================== */
-void eye_switch_material(struct eye_t *eye, const char *eye_gif_path,
-                         const char *eyelid_gif_path, int32_t max_offset_px) {
-  if (eye_gif_path) {
-    lv_gif_set_src(eye->eye_gif, eye_gif_path);
-    /* 重置位置 */
-    lv_obj_set_style_translate_x(eye->eye_gif, 0, 0);
-    lv_obj_set_style_translate_y(eye->eye_gif, 0, 0);
-  }
-  if (eyelid_gif_path) {
-    lv_gif_set_src(eye->eyelid_gif, eyelid_gif_path);
+typedef struct {
+  struct eye_t *left_eye;
+  const char *left_eye_gif_path;
+  const char *left_eyelid_gif_path;
+  int32_t left_max_offset_px;
+  struct eye_t *right_eye;
+  const char *right_eye_gif_path;
+  const char *right_eyelid_gif_path;
+  int32_t right_max_offset_px;
+} switch_material_data_t;
+
+static void _switch_material_async(void *user_data) {
+  switch_material_data_t *data = user_data;
+
+  if (!data || !(data->left_eye && data->right_eye)) return;
+
+  // 现在已经处于 LVGL 主线程，安全操作
+  if (data->left_eye) {
+    if (data->left_eye_gif_path) {
+      lv_gif_set_src(data->left_eye->eye_gif, data->left_eye_gif_path);
+      lv_obj_set_style_translate_x(data->left_eye->eye_gif, 0, 0);
+      lv_obj_set_style_translate_y(data->left_eye->eye_gif, 0, 0);
+    }
+    if (data->left_eyelid_gif_path) {
+      lv_gif_set_src(data->left_eye->eyelid_gif, data->left_eyelid_gif_path);
+      lv_gif_pause(data->left_eye->eyelid_gif);
+    }
+
+    data->left_eye->max_offset = data->left_max_offset_px;
+    eye_look_at(data->left_eye, 0, 0);
   }
 
-  eye->max_offset = max_offset_px;
+  if (data->right_eye) {
+    if (data->right_eye_gif_path) {
+      lv_gif_set_src(data->right_eye->eye_gif, data->right_eye_gif_path);
+      lv_obj_set_style_translate_x(data->right_eye->eye_gif, 0, 0);
+      lv_obj_set_style_translate_y(data->right_eye->eye_gif, 0, 0);
+    }
+    if (data->right_eyelid_gif_path) {
+      lv_gif_set_src(data->right_eye->eyelid_gif, data->right_eyelid_gif_path);
+      lv_gif_pause(data->right_eye->eyelid_gif);
+    }
 
-  /* 看向正前方 */
-  eye_look_at(eye, 0, 0);
+    data->right_eye->max_offset = data->right_max_offset_px;
+    eye_look_at(data->right_eye, 0, 0);
+  }
+
+  free(data);
+}
+
+void eye_switch_material(struct eye_t *left_eye, struct eye_t *right_eye,
+                         const char *left_eye_gif_path,
+                         const char *left_eyelid_gif_path,
+                         int32_t left_max_offset_px,
+                         const char *right_eye_gif_path,
+                         const char *right_eyelid_gif_path,
+                         int32_t right_max_offset_px) {
+  // 必须异步投递到 LVGL 主线程
+  switch_material_data_t *data = malloc(sizeof(*data));
+  if (!data) return;
+
+  data->left_eye = left_eye;
+  data->left_eye_gif_path = left_eye_gif_path;
+  data->left_eyelid_gif_path = left_eyelid_gif_path;
+  data->left_max_offset_px = left_max_offset_px;
+
+  data->right_eye = right_eye;
+  data->right_eye_gif_path = right_eye_gif_path;
+  data->right_eyelid_gif_path = right_eyelid_gif_path;
+  data->right_max_offset_px = right_max_offset_px;
+
+  lv_async_call(_switch_material_async, data);
 }
 
 static void bl_write(const char *path, const char *val) {

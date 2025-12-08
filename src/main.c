@@ -16,8 +16,8 @@ int main(void) {
                       LV_DISPLAY_ROTATION_270, 28);
 
   // // 传入素材的路径，max_offset_px是限制的最大的偏移像素
-  eye_switch_material(&left_eye, ANGRY_LEFT_EYE_GIF, NULL, 28);
-  eye_switch_material(&right_eye, ANGRY_RIGHT_EYE_GIF, NULL, 28);
+  eye_switch_material(&left_eye, &right_eye, ANGRY_LEFT_EYE_GIF, NULL, 28,
+                      ANGRY_RIGHT_EYE_GIF, NULL, 28);
 
   // eye_look_at(&left_eye, 22, -16);  // 双眼往右上看
   // eye_look_at(&right_eye, 22, -16);

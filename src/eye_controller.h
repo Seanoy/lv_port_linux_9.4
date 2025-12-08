@@ -55,8 +55,13 @@ void left_eye_look_at(int32_t tx, int32_t ty);
 void right_eye_look_at(int32_t tx, int32_t ty);
 
 /* 素材切换 */
-void eye_switch_material(struct eye_t *eye, const char *eye_gif_path,
-                         const char *eyelid_gif_path, int32_t max_offset_px);
+void eye_switch_material(struct eye_t *left_eye, struct eye_t *right_eye,
+                         const char *left_eye_gif_path,
+                         const char *left_eyelid_gif_path,
+                         int32_t left_max_offset_px,
+                         const char *right_eye_gif_path,
+                         const char *right_eyelid_gif_path,
+                         int32_t right_max_offset_px);
 
 /* 销毁单个眼睛对象 */
 void eye_destroy(struct eye_t *eye);
