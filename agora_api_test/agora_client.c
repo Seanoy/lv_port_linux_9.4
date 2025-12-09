@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <jansson.h>
 #include <netdb.h>
 #include <netinet/in.h>
@@ -48,33 +49,27 @@ static Config config = {
 // JSON数据定义
 const char *create_chat_ai_json_data =
     "{"
-    "\"name\": \"convaiconsole_187941\","
-    "\"properties\": {"
-    "\"channel\": \"convaiconsole_187941\","
-    "\"token\": "
-    "\"007eJxTYFjw6PqBENGNjKufs+rFZWx1m+"
-    "X0iesS016O26zWd4JTzpxQYEg0tki0NEu0SDIwMzdJM7dMMjQ3sTRPNjCzSE4yMkm0+"
-    "LXcLLMhkJGhfIkvIyMDBIL4IgzJ+XlliZlAsjg/JzXe0MLc0sSQgQEAbmkklA==\","
-    "\"agent_rtc_uid\": \"0\","
-    "\"remote_rtc_uids\": [\"*\"],"
-    "\"asr\": {\"language\": \"zh-CN\"},"
-    "\"llm\": {"
-    "\"url\": "
-    "\"https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions\","
-    "\"api_key\": \"sk-83cf83736ea2427889845a089ea93370\","
-    "\"system_messages\": [{\"role\": \"system\",\"content\": \"You are a "
+    "\"name\":\"%s\","
+    "\"properties\":{"
+    "\"channel\":\"%s\","
+    "\"token\":\"%s\","
+    "\"agent_rtc_uid\":\"0\","
+    "\"remote_rtc_uids\":[\"*\"],"
+    "\"asr\":{\"language\":\"zh-CN\"},"
+    "\"llm\":{"
+    "\"url\":\"https://dashscope.aliyuncs.com/compatible-mode/v1/chat/"
+    "completions\","
+    "\"api_key\":\"sk-83cf83736ea2427889845a089ea93370\","
+    "\"system_messages\":[{\"role\":\"system\",\"content\":\"You are a "
     "helpful chatbot.\"}],"
-    "\"greeting_message\": \"您好，有什么可以帮您？\","
-    "\"failure_message\": \"抱歉，我无法回答这个问题。\","
-    "\"max_history\": 10,"
-    "\"params\": {\"model\": \"qwen-turbo\"}"
+    "\"greeting_message\":\"您好，有什么可以帮您？\","
+    "\"failure_message\":\"抱歉，我无法回答这个问题。\","
+    "\"max_history\":10,"
+    "\"params\":{\"model\":\"qwen-turbo\"}"
     "},"
-    "\"tts\": {"
-    "\"vendor\": \"bytedance\","
-    "\"params\": {"
-    "\"key\": \"2341650528\","
-    "\"voice_id\": \"BV700_streaming\""
-    "}"
+    "\"tts\":{"
+    "\"vendor\":\"bytedance\","
+    "\"params\":{\"key\":\"2341650528\",\"voice_id\":\"BV700_streaming\"}"
     "}"
     "}"
     "}";
@@ -82,10 +77,8 @@ const char *create_chat_ai_json_data =
 const char *change_param_json_data =
     "{"
     "\"properties\": {"
-    "\"token\": "
-    "\"007eJxTYFjw6PqBENGNjKufs+rFZWx1m+"
-    "X0iesS016O26zWd4JTzpxQYEg0tki0NEu0SDIwMzdJM7dMMjQ3sTRPNjCzSE4yMkm0+"
-    "LXcLLMhkJGhfIkvIyMDBIL4IgzJ+XlliZlAsjg/JzXe0MLc0sSQgQEAbmkklA==\","
+    "\"token\": \" %s"
+    "\","
     "\"llm\": {"
     "\"system_messages\": ["
     "{\"role\": \"system\",\"content\": \"You are a helpful assistant. xxx\"},"
@@ -109,24 +102,16 @@ const char *speak_message_json_data =
 
 const char *interrupt_agent_json_data = "{}";
 
-// 存储agent_id
-char agent_id[128] = "";
-
 // 函数声明
-SSL_CTX *create_ssl_context(void);
-int create_socket(const char *hostname, int port);
-HttpResponse *send_https_request(const HttpRequest *req, const char *agent_id);
-void free_response(HttpResponse *response);
-int parse_agent_id_from_json(const char *json_str);
-int parse_response_json(const char *json_str);
-int send_join_request(void);
-int send_leave_request(void);
-int send_update_request(void);
-int send_get_status_request(void);
-int send_get_list_request(void);
+int send_join_request(const char *token, const char *channel,
+                      char *out_agent_id, size_t buf_size);
+int send_leave_request(char *agent_id);
+int send_update_request(char *agent_id, char *token);
+int send_get_status_request(char *agent_id);
+int send_get_list_request(char *agent_id);
 
 // 创建SSL上下文
-SSL_CTX *create_ssl_context(void) {
+static SSL_CTX *create_ssl_context(void) {
   SSL_CTX *ctx = SSL_CTX_new(TLS_client_method());
   if (!ctx) {
     fprintf(stderr, "Error creating SSL context\n");
@@ -140,7 +125,7 @@ SSL_CTX *create_ssl_context(void) {
 }
 
 // 建立TCP连接
-int create_socket(const char *hostname, int port) {
+static int create_socket(const char *hostname, int port) {
   int sockfd = socket(AF_INET, SOCK_STREAM, 0);
   if (sockfd < 0) {
     perror("Error opening socket");
@@ -272,8 +257,8 @@ char *extract_json_from_response(const char *response) {
 }
 
 // 统一的HTTPS请求发送函数
-HttpResponse *send_https_request(const HttpRequest *req,
-                                 const char *agent_id_for_path) {
+static HttpResponse *send_https_request(const HttpRequest *req,
+                                        const char *agent_id_for_path) {
   SSL_CTX *ctx = NULL;
   SSL *ssl = NULL;
   int sockfd = -1;
@@ -394,40 +379,15 @@ cleanup:
 }
 
 // 释放响应内存
-void free_response(HttpResponse *response) {
+static void free_response(HttpResponse *response) {
   if (response) {
     free(response->body);
     free(response);
   }
 }
 
-// 从JSON中解析agent_id
-int parse_agent_id_from_json(const char *json_str) {
-  json_error_t error;
-  json_t *root = json_loads(json_str, 0, &error);
-
-  if (!root) {
-    fprintf(stderr, "Error parsing JSON: %s (line %d, column %d)\n", error.text,
-            error.line, error.column);
-    return -1;
-  }
-
-  json_t *agent_id_json = json_object_get(root, "agent_id");
-  if (agent_id_json && json_is_string(agent_id_json)) {
-    const char *id = json_string_value(agent_id_json);
-    if (id) {
-      strncpy(agent_id, id, sizeof(agent_id) - 1);
-      agent_id[sizeof(agent_id) - 1] = '\0';
-      printf("✓ Successfully parsed agent_id: %s\n", agent_id);
-    }
-  }
-
-  json_decref(root);
-  return 0;
-}
-
 // 解析响应JSON
-int parse_response_json(const char *json_str) {
+static int parse_response_json(const char *json_str) {
   printf("\nResponse JSON:\n%s\n\n", json_str);
 
   json_error_t error;
@@ -455,35 +415,69 @@ int parse_response_json(const char *json_str) {
   return 0;
 }
 
-// 具体的API请求函数
-int send_join_request(void) {
-  HttpRequest req = {.method = "POST",
-                     .path = BASE_PATH "/%s/join",
-                     .body = create_chat_ai_json_data,
-                     .content_type = "Content-Type: application/json\r\n"};
-
-  HttpResponse *resp = send_https_request(&req, NULL);
-  if (!resp) return -1;
-
-  // 检查响应状态码
-  if (resp->status_code != 200) {
-    printf("✗ request failed with status: %d\n", resp->status_code);
-    free_response(resp);
+/**
+ * 创建对话式 AI Agent
+ * @param token       RTC token
+ * @param channel     频道名
+ * @param out_agent_id  调用者提供的缓冲区，至少 128 字节
+ * @param buf_size     out_agent_id 缓冲区大小
+ * @return 0 成功，<0 失败
+ */
+int send_join_request(const char *token, const char *channel,
+                      char *out_agent_id, size_t buf_size) {
+  if (!token || !channel || !out_agent_id || buf_size < 128) {
+    fprintf(stderr, "Invalid parameters for join request\n");
     return -1;
   }
 
-  char *json = extract_json_from_response(resp->body);
-  if (json) {
-    parse_agent_id_from_json(json);
-    parse_response_json(json);
-    free(json);
+  /* 动态构造 JSON（使用传入的 token / channel） */
+  char *json_body = NULL;
+  if (asprintf(&json_body, create_chat_ai_json_data, channel, channel, token) <
+      0) {
+    fprintf(stderr, "asprintf failed\n");
+    return -1;
+  }
+
+  HttpRequest req = {
+      .method = "POST",
+      .path = BASE_PATH "/%s/join",  // %s = app_id
+      .body = json_body,
+      .content_type = "Content-Type: application/json\r\n",
+  };
+
+  HttpResponse *resp = send_https_request(&req, NULL);
+  free(json_body);
+
+  if (!resp) return -1;
+
+  int ret = -1;
+  if (resp->status_code == 200) {
+    char *json = extract_json_from_response(resp->body);
+    if (json) {
+      json_error_t error;
+      json_t *root = json_loads(json, 0, &error);
+      if (root) {
+        json_t *aid = json_object_get(root, "agent_id");
+        if (aid && json_is_string(aid)) {
+          const char *id = json_string_value(aid);
+          strncpy(out_agent_id, id, buf_size - 1);
+          out_agent_id[buf_size - 1] = '\0';
+          printf("Successfully obtained agent_id: %s\n", out_agent_id);
+          ret = 0;
+        }
+        json_decref(root);
+      }
+      free(json);
+    }
+  } else {
+    fprintf(stderr, "JOIN failed, HTTP %d\n", resp->status_code);
   }
 
   free_response(resp);
-  return 0;
+  return ret;
 }
 
-int send_leave_request(void) {
+int send_leave_request(char *agent_id) {
   if (strlen(agent_id) == 0) {
     printf("No agent_id available for leave request\n");
     return -1;
@@ -509,15 +503,21 @@ int send_leave_request(void) {
   return 0;
 }
 
-int send_update_request(void) {
+int send_update_request(char *agent_id, char *token) {
   if (strlen(agent_id) == 0) {
     printf("No agent_id available for update request\n");
     return -1;
   }
 
+  char *json_body = NULL;
+  if (asprintf(&json_body, change_param_json_data, token) < 0) {
+    fprintf(stderr, "asprintf failed\n");
+    return -1;
+  }
+
   HttpRequest req = {.method = "POST",
                      .path = BASE_PATH "/%s/agents/%s/update",
-                     .body = change_param_json_data,
+                     .body = json_body,
                      .content_type = "Content-Type: application/json\r\n"};
 
   HttpResponse *resp = send_https_request(&req, agent_id);
@@ -540,7 +540,7 @@ int send_update_request(void) {
   return 0;
 }
 
-int send_get_status_request(void) {
+int send_get_status_request(char *agent_id) {
   if (strlen(agent_id) == 0) {
     printf("No agent_id available for get status request\n");
     return -1;
@@ -571,7 +571,7 @@ int send_get_status_request(void) {
   return 0;
 }
 
-int send_get_list_request(void) {
+int send_get_list_request(char *agent_id) {
   HttpRequest req = {.method = "GET",
                      .path = BASE_PATH "/%s/agents",
                      .body = NULL,
@@ -597,7 +597,7 @@ int send_get_list_request(void) {
   return 0;
 }
 
-int send_speak_request(void) {
+int send_speak_request(char *agent_id) {
   if (strlen(agent_id) == 0) {
     printf("No agent_id available for speak request\n");
     return -1;
@@ -629,7 +629,7 @@ int send_speak_request(void) {
 }
 
 // 实现打断智能体请求函数
-int send_interrupt_request(void) {
+int send_interrupt_request(char *agent_id) {
   if (strlen(agent_id) == 0) {
     printf("No agent_id available for interrupt request\n");
     return -1;
@@ -664,7 +664,7 @@ int send_interrupt_request(void) {
 }
 
 // 实现获取智能体短期记忆请求函数
-int send_get_history_request(void) {
+int send_get_history_request(char *agent_id) {
   if (strlen(agent_id) == 0) {
     printf("No agent_id available for get history request\n");
     return -1;
@@ -694,67 +694,84 @@ int send_get_history_request(void) {
   return 0;
 }
 
-int main() {
-  int ret = 0;
-
+void agora_openssl_init(void) {
   // 初始化OpenSSL
   SSL_library_init();
   OpenSSL_add_all_algorithms();
   SSL_load_error_strings();
   ERR_load_crypto_strings();
+}
 
+void agora_openssl_deinit(void) {
+  // 清理OpenSSL
+  EVP_cleanup();
+  ERR_free_strings();
+}
+
+int main() {
+  int ret = 0;
+  agora_openssl_init();
   printf("=== Starting Agora API Tests ===\n\n");
+  char agent_id[128] = {0};
 
-  // 1. 发送join请求
-  printf("1. Sending JOIN request...\n");
-  if (send_join_request() != 0) {
+  char *token =
+      "007eJxTYPDIvH9eo6m2vTp1nebj3Z///"
+      "r4fwKt9iPF9tej7pZ3ydn8UGBKNLRItzRItkgzMzE3SzC2TDM1NLM2TDcwskpOMTBItvKabZ"
+      "zYEMjIwMqoxMEIhiC/MkJyfV5aYCSSL83NS4w0NDCzMGBgAtbMkUw==";
+  char *channel = "convaiconsole_10086";
+
+  // 创建对话式智能体
+  printf("Sending JOIN request...\n");
+  if (send_join_request(token, channel, agent_id, sizeof(agent_id)) != 0) {
     printf("✗ JOIN request failed\n");
     ret = 1;
   }
 
-  // 2. 播报自定义消息
-  printf("\n2. Sending SPEAK request (custom message)...\n");
-  if (send_speak_request() != 0) {
+  // 播报自定义消息
+  printf("Sending SPEAK request (custom message)...\n");
+  if (send_speak_request(agent_id) != 0) {
     printf("✗ SPEAK request failed\n");
     ret = 1;
   }
 
-  // 发送interrupt请求
-  printf("\n4. Sending INTERRUPT request...\n");
-  if (send_interrupt_request() != 0) {
+  // 打断智能体
+  printf("Sending INTERRUPT request...\n");
+  if (send_interrupt_request(agent_id) != 0) {
     printf("✗ INTERRUPT request failed\n");
     ret = 1;
   }
-  printf("\n4. Sending GET HISTORY request...\n");
-  if (send_get_history_request() != 0) {
+
+  // 获取智能体短期记忆
+  printf("Sending GET HISTORY request...\n");
+  if (send_get_history_request(agent_id) != 0) {
     printf("✗ GET HISTORY request failed\n");
     ret = 1;
   }
 
-  // 2. 发送get status请求
-  printf("\n2. Sending GET STATUS request...\n");
-  if (send_get_status_request() != 0) {
+  // 查询智能体状态
+  printf("Sending GET STATUS request...\n");
+  if (send_get_status_request(agent_id) != 0) {
     printf("✗ GET STATUS request failed\n");
     ret = 1;
   }
 
-  // 3. 发送get list请求
-  printf("\n3. Sending GET LIST request...\n");
-  if (send_get_list_request() != 0) {
+  // 获取智能体列表
+  printf("Sending GET LIST request...\n");
+  if (send_get_list_request(agent_id) != 0) {
     printf("✗ GET LIST request failed\n");
     ret = 1;
   }
 
-  // 4. 发送update请求
-  printf("\n4. Sending UPDATE request...\n");
-  if (send_update_request() != 0) {
+  // 更新智能体配置
+  printf("Sending UPDATE request...\n");
+  if (send_update_request(agent_id, token) != 0) {
     printf("✗ UPDATE request failed\n");
     ret = 1;
   }
 
-  // 5. 发送leave请求
-  printf("\n5. Sending LEAVE request...\n");
-  if (send_leave_request() != 0) {
+  // 停止对话式智能体
+  printf("Sending LEAVE request...\n");
+  if (send_leave_request(agent_id) != 0) {
     printf("✗ LEAVE request failed\n");
     ret = 1;
   }
@@ -764,9 +781,7 @@ int main() {
     printf("Final agent_id: %s\n", agent_id);
   }
 
-  // 清理OpenSSL
-  EVP_cleanup();
-  ERR_free_strings();
+  agora_openssl_deinit();
 
   return ret;
 }
