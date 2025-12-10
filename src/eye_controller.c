@@ -279,6 +279,8 @@ static void look_at_anim_x(void *obj, int32_t v) {
 static void look_at_anim_y(void *obj, int32_t v) {
   lv_obj_set_style_translate_y(obj, v, 0);
 }
+static pthread_mutex_t g_anim_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t g_switch_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static void _eye_look_at_impl(struct eye_t *eye, int32_t tx, int32_t ty) {
   if (!eye || !eye->eye_gif) return;
@@ -290,14 +292,15 @@ static void _eye_look_at_impl(struct eye_t *eye, int32_t tx, int32_t ty) {
   if (y > eye->max_offset) y = eye->max_offset;
   if (y < -eye->max_offset) y = -eye->max_offset;
 
+  pthread_mutex_lock(&g_anim_mutex);
   /* X 轴动画 */
   lv_anim_t ax;
   lv_anim_init(&ax);
   lv_anim_set_var(&ax, eye->eye_gif);
   lv_anim_set_values(&ax, lv_obj_get_style_translate_x(eye->eye_gif, 0), x);
   lv_anim_set_exec_cb(&ax, look_at_anim_x);
-  lv_anim_set_time(&ax, 180);
-  lv_anim_set_path_cb(&ax, lv_anim_path_ease_out);
+  lv_anim_set_time(&ax, 100);
+  lv_anim_set_path_cb(&ax, lv_anim_path_linear);
   lv_anim_start(&ax);
 
   /* Y 轴动画 */
@@ -306,9 +309,10 @@ static void _eye_look_at_impl(struct eye_t *eye, int32_t tx, int32_t ty) {
   lv_anim_set_var(&ay, eye->eye_gif);
   lv_anim_set_values(&ay, lv_obj_get_style_translate_y(eye->eye_gif, 0), y);
   lv_anim_set_exec_cb(&ay, look_at_anim_y);
-  lv_anim_set_time(&ay, 180);
-  lv_anim_set_path_cb(&ay, lv_anim_path_ease_out);
+  lv_anim_set_time(&ay, 100);
+  lv_anim_set_path_cb(&ay, lv_anim_path_linear);
   lv_anim_start(&ay);
+  pthread_mutex_unlock(&g_anim_mutex);
 }
 
 typedef struct {
@@ -379,6 +383,7 @@ static void _switch_material_async(void *user_data) {
   switch_material_data_t *data = user_data;
 
   if (!data || !(data->left_eye && data->right_eye)) return;
+  pthread_mutex_lock(&g_switch_mutex);
 
   // 现在已经处于 LVGL 主线程，安全操作
   if (data->left_eye) {
@@ -418,6 +423,7 @@ static void _switch_material_async(void *user_data) {
     data->right_eye->max_offset = data->right_max_offset_px;
     eye_look_at(data->right_eye, 0, 0);
   }
+  pthread_mutex_unlock(&g_switch_mutex);
 
   free_switch_material_data(data);
 }
