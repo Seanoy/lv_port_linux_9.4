@@ -211,27 +211,27 @@ static void _eyelid_blink_impl(uint32_t interval_ms, int32_t count) {
 }
 
 typedef struct {
-    uint32_t interval_ms;
-    int32_t count;
+  uint32_t interval_ms;
+  int32_t count;
 } blink_data_t;
 
 static void _eyelid_blink_async_cb(void *user_data) {
-    blink_data_t *data = (blink_data_t *)user_data;
-    if (data) {
-        _eyelid_blink_impl(data->interval_ms, data->count);
-        free(data);
-    }
+  blink_data_t *data = (blink_data_t *)user_data;
+  if (data) {
+    _eyelid_blink_impl(data->interval_ms, data->count);
+    free(data);
+  }
 }
 
 void eyelid_blink(uint32_t interval_ms, int32_t count) {
-    blink_data_t *data = (blink_data_t *)malloc(sizeof(blink_data_t));
-    if (data) {
-        data->interval_ms = interval_ms;
-        data->count = count;
-        if (lv_async_call(_eyelid_blink_async_cb, data) != LV_RES_OK) {
-            free(data);
-        }
+  blink_data_t *data = (blink_data_t *)malloc(sizeof(blink_data_t));
+  if (data) {
+    data->interval_ms = interval_ms;
+    data->count = count;
+    if (lv_async_call(_eyelid_blink_async_cb, data) != LV_RES_OK) {
+      free(data);
     }
+  }
 }
 
 /* ==================== 立即眼皮眨眼一次 ==================== */
@@ -312,29 +312,29 @@ static void _eye_look_at_impl(struct eye_t *eye, int32_t tx, int32_t ty) {
 }
 
 typedef struct {
-    struct eye_t *eye;
-    int32_t x;
-    int32_t y;
+  struct eye_t *eye;
+  int32_t x;
+  int32_t y;
 } look_at_data_t;
 
 static void _eye_look_at_async_cb(void *user_data) {
-    look_at_data_t *data = (look_at_data_t *)user_data;
-    if (data) {
-        _eye_look_at_impl(data->eye, data->x, data->y);
-        free(data);
-    }
+  look_at_data_t *data = (look_at_data_t *)user_data;
+  if (data) {
+    _eye_look_at_impl(data->eye, data->x, data->y);
+    free(data);
+  }
 }
 
 void eye_look_at(struct eye_t *eye, int32_t tx, int32_t ty) {
-    look_at_data_t *data = (look_at_data_t *)malloc(sizeof(look_at_data_t));
-    if (data) {
-        data->eye = eye;
-        data->x = tx;
-        data->y = ty;
-        if (lv_async_call(_eye_look_at_async_cb, data) != LV_RES_OK) {
-            free(data);
-        }
+  look_at_data_t *data = (look_at_data_t *)malloc(sizeof(look_at_data_t));
+  if (data) {
+    data->eye = eye;
+    data->x = tx;
+    data->y = ty;
+    if (lv_async_call(_eye_look_at_async_cb, data) != LV_RES_OK) {
+      free(data);
     }
+  }
 }
 
 // 保持独立控制眼球的函数
@@ -355,14 +355,25 @@ void right_eye_look_at(int32_t tx, int32_t ty) {
 /* ==================== 3. 切换整套眼睛素材 ==================== */
 typedef struct {
   struct eye_t *left_eye;
-  const char *left_eye_gif_path;
-  const char *left_eyelid_gif_path;
+  char *left_eye_gif_path;
+  char *left_eyelid_gif_path;
   int32_t left_max_offset_px;
   struct eye_t *right_eye;
-  const char *right_eye_gif_path;
-  const char *right_eyelid_gif_path;
+  char *right_eye_gif_path;
+  char *right_eyelid_gif_path;
   int32_t right_max_offset_px;
 } switch_material_data_t;
+
+static void free_switch_material_data(switch_material_data_t *data) {
+  if (!data) return;
+
+  if (data->left_eye_gif_path) free(data->left_eye_gif_path);
+  if (data->left_eyelid_gif_path) free(data->left_eyelid_gif_path);
+  if (data->right_eye_gif_path) free(data->right_eye_gif_path);
+  if (data->right_eyelid_gif_path) free(data->right_eyelid_gif_path);
+
+  free(data);
+}
 
 static void _switch_material_async(void *user_data) {
   switch_material_data_t *data = user_data;
@@ -372,12 +383,16 @@ static void _switch_material_async(void *user_data) {
   // 现在已经处于 LVGL 主线程，安全操作
   if (data->left_eye) {
     if (data->left_eye_gif_path) {
+      lv_gif_pause(data->left_eye->eye_gif);
       lv_gif_set_src(data->left_eye->eye_gif, data->left_eye_gif_path);
       lv_obj_set_style_translate_x(data->left_eye->eye_gif, 0, 0);
       lv_obj_set_style_translate_y(data->left_eye->eye_gif, 0, 0);
+      lv_gif_restart(data->left_eye->eye_gif);
     }
     if (data->left_eyelid_gif_path) {
+      lv_gif_pause(data->left_eye->eyelid_gif);
       lv_gif_set_src(data->left_eye->eyelid_gif, data->left_eyelid_gif_path);
+      lv_gif_restart(data->left_eye->eyelid_gif);
       lv_gif_pause(data->left_eye->eyelid_gif);
     }
 
@@ -387,12 +402,16 @@ static void _switch_material_async(void *user_data) {
 
   if (data->right_eye) {
     if (data->right_eye_gif_path) {
+      lv_gif_pause(data->right_eye->eye_gif);
       lv_gif_set_src(data->right_eye->eye_gif, data->right_eye_gif_path);
       lv_obj_set_style_translate_x(data->right_eye->eye_gif, 0, 0);
       lv_obj_set_style_translate_y(data->right_eye->eye_gif, 0, 0);
+      lv_gif_restart(data->right_eye->eye_gif);
     }
     if (data->right_eyelid_gif_path) {
+      lv_gif_pause(data->right_eye->eyelid_gif);
       lv_gif_set_src(data->right_eye->eyelid_gif, data->right_eyelid_gif_path);
+      lv_gif_restart(data->right_eye->eyelid_gif);
       lv_gif_pause(data->right_eye->eyelid_gif);
     }
 
@@ -400,7 +419,7 @@ static void _switch_material_async(void *user_data) {
     eye_look_at(data->right_eye, 0, 0);
   }
 
-  free(data);
+  free_switch_material_data(data);
 }
 
 void eye_switch_material(struct eye_t *left_eye, struct eye_t *right_eye,
@@ -415,13 +434,21 @@ void eye_switch_material(struct eye_t *left_eye, struct eye_t *right_eye,
   if (!data) return;
 
   data->left_eye = left_eye;
-  data->left_eye_gif_path = left_eye_gif_path;
-  data->left_eyelid_gif_path = left_eyelid_gif_path;
+  data->left_eye_gif_path = calloc(1, strlen(left_eye_gif_path) + 1);
+  strncpy(data->left_eye_gif_path, left_eye_gif_path,
+          strlen(left_eye_gif_path));
+  data->left_eyelid_gif_path = calloc(1, strlen(left_eyelid_gif_path) + 1);
+  strncpy(data->left_eyelid_gif_path, left_eyelid_gif_path,
+          strlen(left_eyelid_gif_path));
   data->left_max_offset_px = left_max_offset_px;
 
   data->right_eye = right_eye;
-  data->right_eye_gif_path = right_eye_gif_path;
-  data->right_eyelid_gif_path = right_eyelid_gif_path;
+  data->right_eye_gif_path = calloc(1, strlen(right_eye_gif_path) + 1);
+  strncpy(data->right_eye_gif_path, right_eye_gif_path,
+          strlen(right_eye_gif_path));
+  data->right_eyelid_gif_path = calloc(1, strlen(right_eyelid_gif_path) + 1);
+  strncpy(data->right_eyelid_gif_path, right_eyelid_gif_path,
+          strlen(right_eyelid_gif_path));
   data->right_max_offset_px = right_max_offset_px;
 
   lv_async_call(_switch_material_async, data);
