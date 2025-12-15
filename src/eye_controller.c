@@ -158,6 +158,7 @@ static void _eyelid_blink_impl(uint32_t interval_ms, int32_t count) {
   if (!controller->blink_timer) {
     controller->blink_timer =
         lv_timer_create(unified_eyelid_blink_timer_cb, interval_ms, controller);
+    lv_timer_pause(controller->blink_timer);
   } else {
     lv_timer_set_period(controller->blink_timer, interval_ms);
   }
