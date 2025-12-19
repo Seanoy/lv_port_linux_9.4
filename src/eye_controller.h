@@ -19,9 +19,14 @@ struct eye_t {
 typedef struct eyelid_controller_t {
   struct eye_t *left_eye;   // 左眼指针
   struct eye_t *right_eye;  // 右眼指针
+  
   lv_timer_t *blink_timer;  // 统一的眨眼定时器
   uint32_t blink_interval;  // 眨眼间隔
   int32_t blink_remaining;  // 剩余眨眼次数
+
+  bool left_finished;
+  bool right_finished;
+  bool waiting_for_sync;    // 当前是否有正在进行的眨眼会话
 } eyelid_controller_t;
 
 /* 初始化眼睛控制器 */

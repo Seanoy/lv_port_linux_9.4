@@ -68,32 +68,35 @@ static void unified_eyelid_blink_timer_cb(lv_timer_t *timer) {
   eyelid_controller_t *controller = lv_timer_get_user_data(timer);
   if (!controller) return;
 
-  /* 如果是无限眨眼 或 还有剩余次数 */
-  if (controller->blink_remaining == -1 || controller->blink_remaining > 0) {
-    // 同步控制两个眼皮：先都准备好，再一起恢复
-    if (controller->left_eye && controller->left_eye->eyelid_gif) {
-      _gif_reset_and_play(controller->left_eye->eyelid_gif, 1, false);
-    }
-    if (controller->right_eye && controller->right_eye->eyelid_gif) {
-      _gif_reset_and_play(controller->right_eye->eyelid_gif, 1, false);
-    }
+  // 如果上一次眨眼还没同步完成，直接返回，不启动新的
+  if (controller->waiting_for_sync) {
+    return;
+  }
 
-    // 两个眼皮一起恢复播放（确保同步）
-    if (controller->left_eye && controller->left_eye->eyelid_gif) {
-      lv_gif_resume(controller->left_eye->eyelid_gif);
-    }
-    if (controller->right_eye && controller->right_eye->eyelid_gif) {
-      lv_gif_resume(controller->right_eye->eyelid_gif);
-    }
+  // 如果是有限次数且已用完，也不再触发
+  if (controller->blink_remaining > 0 && controller->blink_remaining <= 0) {
+    lv_timer_pause(timer);
+    return;
+  }
 
-    if (controller->blink_remaining > 0) {
-      controller->blink_remaining--;
-      if (controller->blink_remaining == 0) {
-        lv_timer_pause(timer);  // 次数用完自动暂停
-      }
-    }
+  // 开始一次新的眨眼会话
+  controller->waiting_for_sync = true;
+  controller->left_finished = false;
+  controller->right_finished = false;
+
+  // 两只眼皮都设置为单次播放并启动
+  if (controller->left_eye && controller->left_eye->eyelid_gif) {
+    lv_gif_restart(controller->left_eye->eyelid_gif);
+    lv_gif_set_loop_count(controller->left_eye->eyelid_gif, 1);
+    lv_gif_resume(controller->left_eye->eyelid_gif);
+  }
+  if (controller->right_eye && controller->right_eye->eyelid_gif) {
+    lv_gif_restart(controller->right_eye->eyelid_gif);
+    lv_gif_set_loop_count(controller->right_eye->eyelid_gif, 1);
+    lv_gif_resume(controller->right_eye->eyelid_gif);
   }
 }
+
 /* 事件回调：只要任意一只眼球 GIF 播放完一圈，就强制另一只同步 */
 static void eye_gif_sync_event_cb(lv_event_t *e) {
   lv_obj_t *triggered_gif = lv_event_get_target(e);
@@ -105,6 +108,36 @@ static void eye_gif_sync_event_cb(lv_event_t *e) {
   if (!other_gif) return;
   lv_gif_restart(other_gif);
 }
+
+/* 事件回调：当任意一只眼皮 GIF 播放完一圈（单次）时触发 */
+static void eyelid_gif_finished_cb(lv_event_t *e) {
+  lv_obj_t *gif = lv_event_get_target(e);
+  eyelid_controller_t *controller = &g_eyelid_controller;
+
+  bool is_left = (gif == controller->left_eye->eyelid_gif);
+
+  if (is_left) {
+    controller->left_finished = true;
+  } else {
+    controller->right_finished = true;
+  }
+
+  // 如果两只眼都完成了，解除等待状态
+  if (controller->left_finished && controller->right_finished) {
+    controller->waiting_for_sync = false;
+    controller->left_finished = false;
+    controller->right_finished = false;
+
+    // 如果是有限次数，减少计数
+    if (controller->blink_remaining > 0) {
+      controller->blink_remaining--;
+      if (controller->blink_remaining == 0) {
+        lv_timer_pause(controller->blink_timer);
+      }
+    }
+  }
+}
+
 /* ==================== 创建眼睛（移除独立的眨眼定时器） ==================== */
 static void eye_create(lv_disp_t *disp, struct eye_t *eye,
                        const char *eye_gif_path, const char *eyelid_gif_path,
@@ -130,6 +163,10 @@ static void eye_create(lv_disp_t *disp, struct eye_t *eye,
   lv_gif_set_src(eye->eyelid_gif, eyelid_gif_path);
   lv_obj_center(eye->eyelid_gif);
   lv_gif_pause(eye->eyelid_gif);
+
+  // 新增：监听眼皮 GIF 单次播放完成事件
+  lv_obj_add_event_cb(eye->eyelid_gif, eyelid_gif_finished_cb, LV_EVENT_READY,
+                      NULL);
 }
 
 /* ==================== 统一的眼皮眨眼控制函数 ==================== */
@@ -137,77 +174,53 @@ static void _eyelid_blink_impl(uint32_t interval_ms, int32_t count) {
   eyelid_controller_t *controller = &g_eyelid_controller;
   if (!controller->left_eye && !controller->right_eye) return;
 
-  /* 1. 先停掉当前所有眨眼行为 */
+  // 先停止当前行为
   if (controller->blink_timer) {
     lv_timer_pause(controller->blink_timer);
   }
+  controller->waiting_for_sync = false;  // 重置同步状态
+  controller->left_finished = false;
+  controller->right_finished = false;
 
-  // 暂停两个眼皮的动画
-  if (controller->left_eye && controller->left_eye->eyelid_gif) {
-    lv_gif_pause(controller->left_eye->eyelid_gif);
-  }
-  if (controller->right_eye && controller->right_eye->eyelid_gif) {
-    lv_gif_pause(controller->right_eye->eyelid_gif);
-  }
+  // 暂停当前动画（防止残留）
+  if (controller->left_eye) lv_gif_pause(controller->left_eye->eyelid_gif);
+  if (controller->right_eye) lv_gif_pause(controller->right_eye->eyelid_gif);
 
-  /* 2. 更新控制器参数 */
+  if (count == 0) return;  // 不眨眼
+
   controller->blink_interval = interval_ms;
   controller->blink_remaining = count;
 
-  /* 3. 创建或获取定时器 */
+  // 创建或更新定时器
   if (!controller->blink_timer) {
     controller->blink_timer =
-        lv_timer_create(unified_eyelid_blink_timer_cb, interval_ms, controller);
-    lv_timer_pause(controller->blink_timer);
+        lv_timer_create(unified_eyelid_blink_timer_cb,
+                        interval_ms ? interval_ms : 1, controller);
   } else {
-    lv_timer_set_period(controller->blink_timer, interval_ms);
+    lv_timer_set_period(controller->blink_timer, interval_ms ? interval_ms : 1);
   }
 
-  /* 4. 分类处理三种情况（修正顺序） */
-  if (count == 0) {
-    /* 不眨眼：什么都不做，保持暂停 */
-    return;
-  } else if (count > 0) {
-    if (interval_ms == 0) {
-      /* 间隔为0 → 连续播放 count 次 */
-      if (controller->left_eye && controller->left_eye->eyelid_gif) {
-        _gif_reset_and_play(controller->left_eye->eyelid_gif, count, true);
-      }
-      if (controller->right_eye && controller->right_eye->eyelid_gif) {
-        _gif_reset_and_play(controller->right_eye->eyelid_gif, count, true);
-      }
-    } else {
-      /* 第一次立即触发一次（使用修正后的顺序） */
-      if (controller->left_eye && controller->left_eye->eyelid_gif) {
-        _gif_reset_and_play(controller->left_eye->eyelid_gif, 1, true);
-      }
-      if (controller->right_eye && controller->right_eye->eyelid_gif) {
-        _gif_reset_and_play(controller->right_eye->eyelid_gif, 1, true);
-      }
-      controller->blink_remaining--;            // 已经眨了一次
-      lv_timer_resume(controller->blink_timer); /* 有间隔 → 用定时器控制 */
+  // 立即触发第一次眨眼（即使 interval_ms == 0 也有效）
+  if (interval_ms > 0 || count > 0) {
+    unified_eyelid_blink_timer_cb(controller->blink_timer);
+  }
+
+  // 如果是连续无限眨眼（interval_ms == 0 && count == -1）
+  if (interval_ms == 0 && count == -1) {
+    // 直接让 GIF 无限循环播放（常用于“闭眼”状态）
+    if (controller->left_eye) {
+      lv_gif_restart(controller->left_eye->eyelid_gif);
+      lv_gif_set_loop_count(controller->left_eye->eyelid_gif, -1);
+      lv_gif_resume(controller->left_eye->eyelid_gif);
     }
-  } else {  // count == -1
-    /* 无限眨眼 */
-    if (interval_ms == 0) {
-      /* 间隔为0 → GIF 无限循环 */
-      if (controller->left_eye && controller->left_eye->eyelid_gif) {
-        lv_gif_restart(controller->left_eye->eyelid_gif);
-      }
-      if (controller->right_eye && controller->right_eye->eyelid_gif) {
-        lv_gif_restart(controller->right_eye->eyelid_gif);
-      }
-    } else {
-      /* 立即眨一次（使用修正后的顺序） */
-      if (controller->left_eye && controller->left_eye->eyelid_gif) {
-        _gif_reset_and_play(controller->left_eye->eyelid_gif, 1, true);
-      }
-      if (controller->right_eye && controller->right_eye->eyelid_gif) {
-        _gif_reset_and_play(controller->right_eye->eyelid_gif, 1, true);
-      }
-      /* 正常无限眨眼：定时器控制 */
-      lv_timer_resume(controller->blink_timer);
+    if (controller->right_eye) {
+      lv_gif_restart(controller->right_eye->eyelid_gif);
+      lv_gif_set_loop_count(controller->right_eye->eyelid_gif, -1);
+      lv_gif_resume(controller->right_eye->eyelid_gif);
     }
+    lv_timer_pause(controller->blink_timer);  // 不需要定时器
+  } else {
+    lv_timer_resume(controller->blink_timer);
   }
 }
 
