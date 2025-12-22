@@ -149,7 +149,7 @@ static void eye_create(lv_disp_t *disp, struct eye_t *eye,
 
   lv_obj_t *bg = lv_obj_create(scr);
   lv_obj_set_size(bg, LV_PCT(240), LV_PCT(240));
-  lv_obj_set_style_bg_color(bg, lv_color_make(203, 198, 193), 0);  // 眼底色
+  lv_obj_set_style_bg_color(bg, lv_color_make(214, 214, 206), 0);  // 眼底色
   lv_obj_set_style_bg_opa(bg, LV_OPA_COVER, 0);
   lv_obj_move_background(bg);  // 确保在最底层
 
