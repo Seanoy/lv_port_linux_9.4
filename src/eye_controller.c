@@ -399,6 +399,11 @@ static void _switch_material_async(void *user_data) {
   if (!data || !(data->left_eye && data->right_eye)) return;
   pthread_mutex_lock(&g_switch_mutex);
 
+  eyelid_controller_t *controller = &g_eyelid_controller;
+  controller->waiting_for_sync = false;
+  controller->left_finished = false;
+  controller->right_finished = false;
+
   // 现在已经处于 LVGL 主线程，安全操作
   if (data->left_eye) {
     if (data->left_eye_gif_path) {
@@ -595,7 +600,7 @@ void eye_controller_init(
   g_eyelid_controller.blink_remaining = 0;
 
   // 使用统一眼皮眨眼控制
-  eyelid_blink(2000, -1);  // 间隔2秒无限眨眼
+  eyelid_blink(10000, -1);  // 间隔10秒无限眨眼
 }
 
 /**
